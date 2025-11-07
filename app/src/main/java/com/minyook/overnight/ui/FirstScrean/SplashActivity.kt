@@ -1,4 +1,4 @@
-package com.minyook.overnight.ui.FirstScrean // 1. 패키지명 수정
+package com.minyook.overnight.ui.FirstScrean
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -10,8 +10,7 @@ import android.view.animation.AnimationUtils
 import android.widget.ImageView
 import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
-import com.minyook.overnight.ui.FirstScrean.OnboardingActivity
-import com.minyook.overnight.R // 3. R 파일 경로
+import com.minyook.overnight.R
 
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
@@ -30,7 +29,7 @@ class SplashActivity : AppCompatActivity() {
         spinner.startAnimation(fadeIn)
 
         Handler(Looper.getMainLooper()).postDelayed({
-            //  OnboardingActivity로 이동
+
             val intent = Intent(this, OnboardingActivity::class.java)
             startActivity(intent)
             finish()

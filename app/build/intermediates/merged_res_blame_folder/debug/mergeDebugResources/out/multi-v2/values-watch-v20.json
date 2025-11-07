@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.minyook.overnight.app-mergeDebugResources-40:/values-watch-v20/values-watch-v20.xml",
+            "outputFile": "com.minyook.overnight.app-mergeDebugResources-47:/values-watch-v20/values-watch-v20.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\limmi\\.gradle\\caches\\8.11.1\\transforms\\557aeba6ba8baf5d844b931ac7d353b5\\transformed\\appcompat-1.7.1\\res\\values-watch-v20\\values-watch-v20.xml",
+                    "source": "C:\\Users\\rbcks\\.gradle\\caches\\8.13\\transforms\\8c917ea3d4fdd6ea68b842bebcd9c784\\transformed\\appcompat-1.7.1\\res\\values-watch-v20\\values-watch-v20.xml",
                     "from": {
                         "startLines": "2,5,8",
                         "startColumns": "4,4,4",

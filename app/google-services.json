@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "229593967363",
+    "project_id": "overnightai-67418",
+    "storage_bucket": "overnightai-67418.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:229593967363:android:49d92c14a645d489ee1736",
+        "android_client_info": {
+          "package_name": "com.minyook.overnight"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0W0DqiAEZauHHx39nVvM6sqNrr5Gw0U0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

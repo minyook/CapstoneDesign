@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
@@ -42,6 +43,9 @@ dependencies {
     implementation libs.material
     implementation libs.androidx.activity
     implementation libs.androidx.constraintlayout
+
+    // implementation libs.firebase.firestore // <-- 충돌을 일으킬 수 있으므로 이 줄은 삭제(주석)합니다.
+
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit
     androidTestImplementation libs.androidx.espresso.core
@@ -60,4 +64,22 @@ dependencies {
 
     // 2. Fragment (ViewPager2와 함께 사용)
     implementation "androidx.fragment:fragment-ktx:1.5.7"
+
+    // --- 여기부터 Firebase 라이브러리 ---
+
+    // BoM (Bill of Materials) - Firebase 라이브러리들의 버전을 자동으로 관리해줍니다.
+    implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
+
+    // 1. Firebase 공통 KTX (Firebase 객체 및 .ktx 확장 기능)
+    // 이것이 'Firebase' 오류의 원인입니다.
+    implementation("com.google.firebase:firebase-common-ktx")
+
+    // 2. Firestore KTX (db.collection, addOnSuccessListener 등)
+    // 이것이 'firestore', 'documentReference', 'e' 오류의 원인입니다.
+    implementation("com.google.firebase:firebase-firestore-ktx")
+
+    // 3. (권장) Firebase Analytics - 공통 라이브러리가 의존하는 경우가 많습니다.
+    implementation("com.google.firebase:firebase-analytics-ktx")
+
+    // --- 여기까지 Firebase ---
 }
