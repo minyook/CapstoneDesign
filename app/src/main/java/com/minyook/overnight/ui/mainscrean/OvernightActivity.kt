@@ -13,7 +13,7 @@ class OvernightActivity : AppCompatActivity() {
         setContentView(R.layout.activity_overnight)
         mBinding = ActivityOvernightBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
+        // hiihihihih
         // activity_main.xml 레이아웃을 화면에 연결합니다.
         setContentView(R.layout.activity_overnight)
     }
