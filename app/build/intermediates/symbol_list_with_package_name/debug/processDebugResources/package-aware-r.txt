@@ -3593,6 +3593,7 @@ drawable common_google_signin_btn_text_light
 drawable common_google_signin_btn_text_light_focused
 drawable common_google_signin_btn_text_light_normal
 drawable common_google_signin_btn_text_light_normal_background
+drawable dashed_border
 drawable design_fab_background
 drawable design_ic_visibility
 drawable design_ic_visibility_off
@@ -3628,6 +3629,7 @@ drawable ic_mtrl_chip_close_circle
 drawable ic_overnight_logo
 drawable ic_person
 drawable ic_search_black_24
+drawable ic_upload
 drawable m3_avd_hide_password
 drawable m3_avd_show_password
 drawable m3_bottom_sheet_drag_handle
@@ -3687,6 +3689,7 @@ drawable mtrl_switch_thumb_unchecked_pressed
 drawable mtrl_switch_track
 drawable mtrl_switch_track_decoration
 drawable mtrl_tabs_default_indicator
+drawable mypage_card_border
 drawable navigation_empty_icon
 drawable notification_action_background
 drawable notification_bg
@@ -3813,12 +3816,14 @@ id bounce
 id bounceBoth
 id bounceEnd
 id bounceStart
+id btn_analyze
 id btn_next_start
 id btn_skip
 id buttonPanel
 id cache_measures
 id callMeasure
 id cancel_button
+id card_upload_zone
 id carryVelocity
 id center
 id centerCrop
@@ -3917,6 +3922,7 @@ id fixed
 id flip
 id floating
 id forever
+id fragment_container
 id fragment_container_view_tag
 id frost
 id fullscreen_header
@@ -3956,6 +3962,7 @@ id inward
 id is_pooling_container_tag
 id italic
 id item_touch_helper_previous_elevation
+id iv_profile_icon
 id iv_record_icon
 id iv_splash_logo
 id jumpToEnd
@@ -4226,8 +4233,14 @@ id transition_scene_layoutid_cache
 id transition_transform
 id triangle
 id tv_features_title
+id tv_file_name
 id tv_onboarding_description
 id tv_onboarding_title
+id tv_option_drive
+id tv_option_files
+id tv_option_gallery
+id tv_profile_email
+id tv_profile_name
 id tv_record_date
 id tv_record_duration
 id tv_record_list_title
@@ -4380,6 +4393,8 @@ layout abc_tooltip
 layout activity_onboarding
 layout activity_overnight
 layout activity_splash
+layout activity_upload
+layout bottom_sheet_upload_options
 layout custom_dialog
 layout design_bottom_navigation_item
 layout design_bottom_sheet_dialog
@@ -4396,6 +4411,8 @@ layout design_navigation_menu
 layout design_navigation_menu_item
 layout design_text_input_end_icon
 layout design_text_input_start_icon
+layout fragment_home
+layout fragment_mypage
 layout fragment_onboarding
 layout ime_base_split_test_activity
 layout ime_secondary_split_test_activity

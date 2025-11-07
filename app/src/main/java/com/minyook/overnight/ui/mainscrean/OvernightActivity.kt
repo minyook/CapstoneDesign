@@ -1,20 +1,65 @@
-package com.minyook.overnight.ui.mainscrean
+package com.minyook.overnight.ui.mainscrean // 님의 패키지 경로
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.minyook.overnight.R
-import com.minyook.overnight.databinding.ActivityOvernightBinding
+import com.minyook.overnight.ui.home.HomeFragment // HomeFragment import
+import com.minyook.overnight.ui.mypage.MyPageFragment // MyPageFragment import
+// ⚠️ (폴더 Fragment도 만들었다면 import 해야 합니다)
 
+// ⚠️ 클래스 이름을 여기에서 변경했습니다.
 class OvernightActivity : AppCompatActivity() {
-    private var mBinding: ActivityOvernightBinding? = null
-    private val binding get() = mBinding!!
+
+    // 1. 홈, 마이페이지 Fragment를 미리 준비합니다.
+    private val homeFragment = HomeFragment()
+    private val myPageFragment = MyPageFragment()
+    // private val folderFragment = FolderFragment()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_overnight)
-        mBinding = ActivityOvernightBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        // hiihihihih
-        // activity_main.xml 레이아웃을 화면에 연결합니다.
-        setContentView(R.layout.activity_overnight)
+
+        val bottomNav: BottomNavigationView = findViewById(R.id.bottom_navigation)
+
+        // 2. 앱이 처음 켜졌을 때 '홈' 화면을 기본으로 보여줍니다.
+        if (savedInstanceState == null) {
+            loadFragment(homeFragment)
+        }
+
+        // 3. ⚡️ 여기가 '마이페이지'를 불러오는 핵심 코드입니다. ⚡️
+        // 네비게이션 바의 아이템이 선택되었을 때를 감지합니다.
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                // '홈' 아이콘을 클릭하면
+                R.id.nav_home -> {
+                    loadFragment(homeFragment)
+                    true
+                }
+
+                // '폴더' 아이콘을 클릭하면
+                R.id.nav_folder -> {
+                    // TODO: 폴더 프래그먼트 로드
+                    // loadFragment(folderFragment)
+                    true
+                }
+
+                // '마이페이지' 아이콘을 클릭하면
+                R.id.nav_mypage -> {
+                    // 1번에서 준비해둔 myPageFragment를 불러옵니다.
+                    loadFragment(myPageFragment)
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    // 4. 이 함수가 Fragment를 화면에 실제로 띄워줍니다.
+    private fun loadFragment(fragment: Fragment) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .commit()
     }
 }

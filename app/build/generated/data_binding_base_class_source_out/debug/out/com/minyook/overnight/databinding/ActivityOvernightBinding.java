@@ -4,18 +4,14 @@ package com.minyook.overnight.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.HorizontalScrollView;
-import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.fragment.app.FragmentContainerView;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.minyook.overnight.R;
-import com.minyook.overnight.ui.mainscrean.AnimatedWaveView;
 import java.lang.NullPointerException;
 import java.lang.Override;
 import java.lang.String;
@@ -28,45 +24,18 @@ public final class ActivityOvernightBinding implements ViewBinding {
   public final BottomNavigationView bottomNavigation;
 
   @NonNull
-  public final FloatingActionButton fabAdd;
-
-  @NonNull
-  public final AnimatedWaveView headerWaveView;
-
-  @NonNull
-  public final HorizontalScrollView horizontalScrollFeatures;
+  public final FragmentContainerView fragmentContainer;
 
   @NonNull
   public final View navDivider;
 
-  @NonNull
-  public final RecyclerView recyclerViewRecordings;
-
-  @NonNull
-  public final TextView textViewTitle;
-
-  @NonNull
-  public final TextView tvFeaturesTitle;
-
-  @NonNull
-  public final TextView tvRecordListTitle;
-
   private ActivityOvernightBinding(@NonNull ConstraintLayout rootView,
-      @NonNull BottomNavigationView bottomNavigation, @NonNull FloatingActionButton fabAdd,
-      @NonNull AnimatedWaveView headerWaveView,
-      @NonNull HorizontalScrollView horizontalScrollFeatures, @NonNull View navDivider,
-      @NonNull RecyclerView recyclerViewRecordings, @NonNull TextView textViewTitle,
-      @NonNull TextView tvFeaturesTitle, @NonNull TextView tvRecordListTitle) {
+      @NonNull BottomNavigationView bottomNavigation,
+      @NonNull FragmentContainerView fragmentContainer, @NonNull View navDivider) {
     this.rootView = rootView;
     this.bottomNavigation = bottomNavigation;
-    this.fabAdd = fabAdd;
-    this.headerWaveView = headerWaveView;
-    this.horizontalScrollFeatures = horizontalScrollFeatures;
+    this.fragmentContainer = fragmentContainer;
     this.navDivider = navDivider;
-    this.recyclerViewRecordings = recyclerViewRecordings;
-    this.textViewTitle = textViewTitle;
-    this.tvFeaturesTitle = tvFeaturesTitle;
-    this.tvRecordListTitle = tvRecordListTitle;
   }
 
   @Override
@@ -102,21 +71,9 @@ public final class ActivityOvernightBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.fab_add;
-      FloatingActionButton fabAdd = ViewBindings.findChildViewById(rootView, id);
-      if (fabAdd == null) {
-        break missingId;
-      }
-
-      id = R.id.header_wave_view;
-      AnimatedWaveView headerWaveView = ViewBindings.findChildViewById(rootView, id);
-      if (headerWaveView == null) {
-        break missingId;
-      }
-
-      id = R.id.horizontal_scroll_features;
-      HorizontalScrollView horizontalScrollFeatures = ViewBindings.findChildViewById(rootView, id);
-      if (horizontalScrollFeatures == null) {
+      id = R.id.fragment_container;
+      FragmentContainerView fragmentContainer = ViewBindings.findChildViewById(rootView, id);
+      if (fragmentContainer == null) {
         break missingId;
       }
 
@@ -126,33 +83,8 @@ public final class ActivityOvernightBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.recycler_view_recordings;
-      RecyclerView recyclerViewRecordings = ViewBindings.findChildViewById(rootView, id);
-      if (recyclerViewRecordings == null) {
-        break missingId;
-      }
-
-      id = R.id.textViewTitle;
-      TextView textViewTitle = ViewBindings.findChildViewById(rootView, id);
-      if (textViewTitle == null) {
-        break missingId;
-      }
-
-      id = R.id.tv_features_title;
-      TextView tvFeaturesTitle = ViewBindings.findChildViewById(rootView, id);
-      if (tvFeaturesTitle == null) {
-        break missingId;
-      }
-
-      id = R.id.tv_record_list_title;
-      TextView tvRecordListTitle = ViewBindings.findChildViewById(rootView, id);
-      if (tvRecordListTitle == null) {
-        break missingId;
-      }
-
-      return new ActivityOvernightBinding((ConstraintLayout) rootView, bottomNavigation, fabAdd,
-          headerWaveView, horizontalScrollFeatures, navDivider, recyclerViewRecordings,
-          textViewTitle, tvFeaturesTitle, tvRecordListTitle);
+      return new ActivityOvernightBinding((ConstraintLayout) rootView, bottomNavigation,
+          fragmentContainer, navDivider);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

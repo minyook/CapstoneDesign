@@ -65,6 +65,12 @@ dependencies {
     // 2. Fragment (ViewPager2와 함께 사용)
     implementation "androidx.fragment:fragment-ktx:1.5.7"
 
+    // 1. Material Components (BottomSheet, Button 등에 필요)
+    implementation "com.google.android.material:material:1.12.0"
+
+    // 2. Activity Result API (파일 가져오기 로직에 필요)
+    implementation "androidx.activity:activity-ktx:1.8.0"
+
     // --- 여기부터 Firebase 라이브러리 ---
 
     // BoM (Bill of Materials) - Firebase 라이브러리들의 버전을 자동으로 관리해줍니다.

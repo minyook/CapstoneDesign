@@ -4,12 +4,28 @@
         "source": "com.minyook.overnight.app-main-51:/layout/activity_splash.xml"
     },
     {
+        "merged": "com.minyook.overnight.app-mergeDebugResources-48:/layout/bottom_sheet_upload_options.xml",
+        "source": "com.minyook.overnight.app-main-51:/layout/bottom_sheet_upload_options.xml"
+    },
+    {
         "merged": "com.minyook.overnight.app-mergeDebugResources-48:/layout/activity_onboarding.xml",
         "source": "com.minyook.overnight.app-main-51:/layout/activity_onboarding.xml"
     },
     {
+        "merged": "com.minyook.overnight.app-mergeDebugResources-48:/layout/fragment_mypage.xml",
+        "source": "com.minyook.overnight.app-main-51:/layout/fragment_mypage.xml"
+    },
+    {
+        "merged": "com.minyook.overnight.app-mergeDebugResources-48:/layout/activity_upload.xml",
+        "source": "com.minyook.overnight.app-main-51:/layout/activity_upload.xml"
+    },
+    {
         "merged": "com.minyook.overnight.app-mergeDebugResources-48:/layout/activity_overnight.xml",
         "source": "com.minyook.overnight.app-main-51:/layout/activity_overnight.xml"
+    },
+    {
+        "merged": "com.minyook.overnight.app-mergeDebugResources-48:/layout/fragment_home.xml",
+        "source": "com.minyook.overnight.app-main-51:/layout/fragment_home.xml"
     },
     {
         "merged": "com.minyook.overnight.app-mergeDebugResources-48:/layout/item_recording.xml",
