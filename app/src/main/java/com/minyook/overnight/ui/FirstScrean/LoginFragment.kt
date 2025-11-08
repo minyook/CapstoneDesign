@@ -67,9 +67,7 @@ class LoginFragment : Fragment() {
     private fun setupClickListeners() {
         // 1. 로그인 버튼
         binding.btnLogin.setOnClickListener {
-            // TODO: 입력값 유효성 검사
-            // TODO: ViewModel을 통해 실제 로그인 로직 호출
-            Toast.makeText(requireContext(), "로그인 시도", Toast.LENGTH_SHORT).show()
+            performLogin()
         }
 
         // 2. Google 로그인 버튼
