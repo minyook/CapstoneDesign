@@ -131,7 +131,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_google_login"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        style="@style/Widget.Material3.Button.OutlinedButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
@@ -147,7 +147,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_microsoft_login"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        style="@style/Widget.Material3.Button.OutlinedButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
