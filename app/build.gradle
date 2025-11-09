@@ -79,4 +79,7 @@ dependencies {
     // Navigation Component 추가 (프래그먼트 연결에 필수)
     implementation "androidx.navigation:navigation-fragment-ktx:2.7.7"
     implementation "androidx.navigation:navigation-ui-ktx:2.7.7"
+
+    //구글 로그인
+    implementation 'com.google.android.gms:play-services-auth:21.2.0'
 }

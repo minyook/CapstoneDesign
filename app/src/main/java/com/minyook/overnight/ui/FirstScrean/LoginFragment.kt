@@ -1,5 +1,6 @@
 package com.minyook.overnight.ui.FirstScrean
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent // ⭐️ Intent 사용을 위한 import
 import android.os.Bundle
@@ -9,9 +10,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.minyook.overnight.R
 import com.minyook.overnight.databinding.FragmentLoginBinding
 import com.minyook.overnight.ui.mainscrean.OvernightActivity // ⭐️ OvernightActivity 임포트
@@ -33,10 +42,43 @@ class LoginFragment : Fragment() {
     // Firebase Authentication 객체 선언
     private lateinit var auth: FirebaseAuth
 
+    // (추가) Google 로그인을 위한 클라이언트 객체
+    private lateinit var googleSignInClient: GoogleSignInClient
+
+    // (추가) Google 로그인 결과를 처리할 ActivityResultLauncher
+    private lateinit var googleSignInLauncher: ActivityResultLauncher<Intent>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Firebase Auth 인스턴스 초기화
         auth = FirebaseAuth.getInstance()
+
+        // Google 로그인 결과 처리기 초기화
+        googleSignInLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            // 1. 로그인 결과가 'OK'(성공)인지 확인
+            if (result.resultCode == Activity.RESULT_OK) {
+                val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                try {
+                    // 2. Google 로그인 시도 및 성공
+                    val account = task.getResult(ApiException::class.java)!!
+
+                    // 3. (10단계에서 수정할 부분) Google 인증 성공! Firebase로 넘김
+                    Log.d("Auth", "Google 인증 성공 (1/2단계), Firebase로 넘김: ${account.email}")
+                    firebaseAuthWithGoogle(account)
+
+                } catch (e: ApiException) {
+                    // 4. Google 로그인 실패
+                    Log.w("Auth", "Google sign in failed", e)
+                    Toast.makeText(requireContext(), "Google 로그인에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                // 5. 사용자가 팝업을 그냥 닫음
+                Log.w("Auth", "Google sign in cancelled or failed")
+                Toast.makeText(requireContext(), "Google 로그인을 취소했습니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onCreateView(
@@ -51,6 +93,15 @@ class LoginFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Google 로그인 옵션 설정 (웹 클라이언트 ID 필요)
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id)) // ⭐️ 중요!
+            .requestEmail()
+            .build()
+
+        // GoogleSignInClient
+        googleSignInClient = GoogleSignIn.getClient(requireActivity(), gso)
 
         setupClickListeners()  // 1. 각종 버튼 클릭 리스너 설정
         setupSignUpPromptText() // 2. '회원가입' 텍스트에 스타일(굵게) 적용
@@ -86,8 +137,11 @@ class LoginFragment : Fragment() {
 
         // 2. Google 로그인 버튼
         binding.btnGoogleLogin.setOnClickListener {
-            // TODO: Google 로그인 로직 구현
-            Toast.makeText(requireContext(), "Google 로그인 시도", Toast.LENGTH_SHORT).show()
+            // 2-1. GoogleSignInClient에서 로그인 Intent(팝업)를 가져옵니다.
+            val signInIntent = googleSignInClient.signInIntent
+
+            // 2-2. 8단계에서 만든 '결과 처리기'로 해당 Intent를 실행(launch)합니다.
+            googleSignInLauncher.launch(signInIntent)
         }
 
         // 3. Microsoft 로그인 버튼
@@ -154,6 +208,39 @@ class LoginFragment : Fragment() {
                     // --- 8. 로그인 실패 ---
                     Log.w("Auth", "로그인 실패", task.exception)  // 실패 원인을 로그에 기록
                     Toast.makeText(requireContext(), "로그인 실패: 아이디/비밀번호를 확인하세요.", Toast.LENGTH_LONG).show()
+                }
+            }
+    }
+
+    /**
+     * Google 로그인 성공 후, 받은 계정 정보(account)를
+     * Firebase Authentication에 넘겨서 최종 로그인을 완료하는 함수
+     */
+    private fun firebaseAuthWithGoogle(account: GoogleSignInAccount) {
+        // 1. Google 계정 정보(account.idToken)로 Firebase용 '인증서(credential)' 생성
+        val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+
+        // 2. 이 '인증서'를 사용해 Firebase에 로그인
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener(requireActivity()) { task ->
+                if (task.isSuccessful) {
+                    // --- 3. Firebase 로그인 성공! ---
+                    val user = auth.currentUser
+                    val uid = user?.uid ?: return@addOnCompleteListener
+
+                    // 4. (세션 유지) 사용자 UID를 기기에 저장
+                    saveUserUid(uid)
+
+                    Toast.makeText(requireContext(), "Firebase 로그인 성공: ${user.email}", Toast.LENGTH_LONG).show()
+                    Log.d("Auth", "Firebase 로그인 성공, UID 저장됨: $uid")
+
+                    // 5. 메인 화면으로 이동
+                    navigateToOvernightActivity()
+
+                } else {
+                    // --- 6. Firebase 로그인 실패 ---
+                    Log.w("Auth", "Firebase signInWithCredential 실패", task.exception)
+                    Toast.makeText(requireContext(), "Firebase 로그인에 실패했습니다.", Toast.LENGTH_LONG).show()
                 }
             }
     }
