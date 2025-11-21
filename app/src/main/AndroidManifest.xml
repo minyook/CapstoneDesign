@@ -12,7 +12,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Overnight"
         tools:targetApi="31">
-
+        <activity
+            android:name=".ui.file.AnalysisResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.file.AnalysisProgressActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.FirstScrean.SplashActivity"
             android:exported="true"
@@ -26,31 +31,24 @@
         <activity
             android:name=".ui.FirstScrean.OnboardingActivity"
             android:exported="false"
-            android:theme="@style/Theme.Overnight.NoActionBar"/>
-
+            android:theme="@style/Theme.Overnight.NoActionBar" />
         <activity
             android:name=".ui.mainscrean.OvernightActivity"
-            android:exported="false">
-        </activity>
-
+            android:exported="false" />
         <activity
             android:name=".ui.FirstScrean.FindPasswordActivity"
             android:exported="false" />
-
         <activity
             android:name=".ui.FirstScrean.AuthActivity"
             android:exported="false"
             android:theme="@style/Theme.Overnight"
             android:windowSoftInputMode="adjustResize" />
-
         <activity
             android:name=".ui.mainscrean.PresentationInfoActivity"
             android:exported="false" />
-
         <activity
             android:name=".ui.file.UploadActivity"
             android:exported="false" />
-
     </application>
 
 </manifest>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="max_bar_width">150dp</dimen> <!-- 막대 그래프 최대 너비 정의 -->
+</resources>
