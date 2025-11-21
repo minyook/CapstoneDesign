@@ -1,23 +1,26 @@
 package com.minyook.overnight.ui.mainscrean
 
-import android.content.Intent // 👈 [수정됨] Intent 임포트
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
-import android.widget.Toast // 👈 [수정됨] Toast 임포트
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputEditText
-import com.minyook.overnight.R // 👈 R파일 임포트 (프로젝트 패키지명에 맞게)
+import com.minyook.overnight.R
 import com.minyook.overnight.ui.file.UploadActivity
 
-class PresentationInfoActivity : AppCompatActivity() {
+// 🔴 [수정] FolderSelectionBottomSheet.OnFolderSelectedListener 인터페이스 구현
+class PresentationInfoActivity : AppCompatActivity(),
+    FolderSelectionBottomSheet.OnFolderSelectedListener {
 
     // 1. 뷰들을 나중에 참조할 수 있게 클래스 멤버로 선언
     private lateinit var itemsContainer: LinearLayout
     private lateinit var addItemButton: Button
-    private lateinit var startButton: Button // 👈 [수정됨] 시작 버튼 변수 추가
+    private lateinit var startButton: Button
+    private lateinit var folderPathEditText: TextInputEditText // 👈 [추가] 폴더 경로 EditText
 
     // 2. 추가된 항목의 개수를 세는 카운터
     private var itemCounter = 0
@@ -29,25 +32,28 @@ class PresentationInfoActivity : AppCompatActivity() {
         // 3. 뷰 초기화
         itemsContainer = findViewById(R.id.itemsContainer)
         addItemButton = findViewById(R.id.addItemButton)
-        startButton = findViewById(R.id.startButton) // 👈 [수정됨] 시작 버튼 초기화
+        startButton = findViewById(R.id.startButton)
+
+        // 🔴 [수정] 폴더 경로 EditText 초기화 및 클릭 리스너 설정 🔴
+        folderPathEditText = findViewById(R.id.edittext_folder_path)
+        folderPathEditText.setOnClickListener {
+            // 폴더 경로 입력란 클릭 시 BottomSheet 팝업창 띄우기
+            val bottomSheet = FolderSelectionBottomSheet()
+            bottomSheet.show(supportFragmentManager, FolderSelectionBottomSheet.TAG)
+        }
 
         // 4. '+ 항목 추가' 버튼 클릭 리스너 설정
         addItemButton.setOnClickListener {
-
-            // 🔴 [수정됨] 5개 제한 로직 추가 🔴
-            // 현재 컨테이너에 추가된 뷰(항목 카드)의 개수를 확인합니다.
+            // 5개 제한 로직
             if (itemsContainer.childCount < 5) {
                 addNewItemCard()
             } else {
-                // 5개를 초과하면 토스트 메시지 표시
                 Toast.makeText(this, "항목은 최대 5개까지 추가할 수 있습니다.", Toast.LENGTH_SHORT).show()
             }
         }
 
-        // 🔴 [수정됨] '발표 시작하기' 버튼 클릭 리스너 설정 🔴
+        // '발표 시작하기' 버튼 클릭 리스너 설정
         startButton.setOnClickListener {
-            // UploadActivity로 이동하는 Intent 생성
-            // ⚠️ (주의) UploadActivity.kt 파일이 있어야 합니다.
             val intent = Intent(this, UploadActivity::class.java)
             startActivity(intent)
         }
@@ -60,7 +66,6 @@ class PresentationInfoActivity : AppCompatActivity() {
      * 6. 새 항목 카드를 itemsContainer에 추가하는 함수
      */
     private fun addNewItemCard() {
-        // 7. 카운터 증가
         itemCounter++
 
         // 8. LayoutInflater를 사용해 item_criterion.xml을 뷰 객체로 만듦
@@ -86,5 +91,15 @@ class PresentationInfoActivity : AppCompatActivity() {
 
         // 12. 완성된 카드 뷰를 컨테이너(LinearLayout)에 추가
         itemsContainer.addView(itemCardView)
+    }
+
+    // 🔴 [신규] OnFolderSelectedListener 인터페이스 구현 함수 🔴
+    /**
+     * FolderSelectionBottomSheet에서 폴더를 선택하면 호출되는 콜백 함수
+     */
+    override fun onFolderSelected(path: String) {
+        // 선택된 경로를 EditText에 업데이트
+        folderPathEditText.setText(path)
+        Toast.makeText(this, "경로 설정: $path", Toast.LENGTH_SHORT).show()
     }
 }

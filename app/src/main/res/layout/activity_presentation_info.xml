@@ -5,8 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.mainscrean.PresentationInfoActivity">
-
+    tools:context="com.minyook.overnight.ui.mainscrean.PresentationInfoActivity">
     <com.minyook.overnight.ui.mainscrean.AnimatedWaveView
         android:id="@+id/waveHeader"
         android:layout_width="match_parent"
@@ -19,24 +18,25 @@
         android:id="@+id/textViewTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="30dp"
+        android:layout_marginTop="40dp"
         android:text="@string/title_enter_info"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
         android:textColor="@android:color/black"
         app:layout_constraintEnd_toEndOf="@+id/waveHeader"
-        app:layout_constraintStart_toStartOf="@+id/waveHeader"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/waveHeader" />
 
     <TextView
         android:id="@+id/textViewSubtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="24dp"
         android:text="@string/subtitle_enter_info"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
         android:textColor="@android:color/black"
         app:layout_constraintEnd_toEndOf="@+id/textViewTitle"
-        app:layout_constraintStart_toStartOf="@id/textViewTitle"
+        app:layout_constraintHorizontal_bias="0.463"
+        app:layout_constraintStart_toStartOf="@+id/textViewTitle"
         app:layout_constraintTop_toBottomOf="@id/textViewTitle" />
 
     <Button
@@ -67,9 +67,26 @@
             android:paddingHorizontal="16dp">
 
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layout_folder_path"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/presentation_name">
+                android:hint="@string/folder_path"
+                app:endIconMode="custom"
+                app:endIconDrawable="@drawable/ic_folder"> <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edittext_folder_path"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="true"
+                android:text="@string/default_folder_path" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:hint="@string/team_info">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:layout_width="match_parent"
@@ -81,7 +98,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:hint="@string/team_info">
+                android:hint="@string/presentation_name">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:layout_width="match_parent"
@@ -110,7 +127,6 @@
                     android:layout_height="wrap_content"
                     android:text="@string/add_item" />
             </LinearLayout>
-
 
             <LinearLayout
                 android:id="@+id/itemsContainer"
