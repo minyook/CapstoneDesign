@@ -1,0 +1,24 @@
+# IDE-related
+.idea/
+*.iml
+*.iws
+*.ipr
+.gradle/
+build/
+local.properties
+
+# Android specific
+/captures/
+.externalNativeBuild/
+/gradle/wrapper/gradle-wrapper.jar
+/app/build/
+/app/release/
+/app/debug/
+/out/
+/Appname.apk
+
+# Keystore
+*.jks
+
+# Logs
+*.log
