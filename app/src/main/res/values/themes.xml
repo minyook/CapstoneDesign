@@ -4,13 +4,6 @@
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
-    <style name="BottomNavShapeAppearance" parent="">
-        <item name="cornerFamily">rounded</item>
-        <item name="cornerSizeTopLeft">20dp</item>
-        <item name="cornerSizeTopRight">20dp</item>
-        <item name="cornerSizeBottomLeft">0dp</item>
-        <item name="cornerSizeBottomRight">0dp</item>
-    </style>
     <style name="Theme.Overnight.NoActionBar" parent="Theme.Overnight">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>

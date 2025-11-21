@@ -21,4 +21,15 @@
     <color name="score_low">#F44336</color>    <!-- 빨강 -->
     <color name="purple_500">#9C27B0</color>
     <color name="overnight_background">#3A1D6E</color>
+    <color name="app_background">#F5F7FA</color>
+
+    <color name="primary_tech_blue">#4F46E5</color>
+    <color name="primary_tech_dark">#3730A3</color>
+
+    <color name="accent_violet">#7C3AED</color>
+    <color name="accent_soft_blue">#E0E7FF</color> <color name="text_title">#1F2937</color>
+    <color name="nav_indicator">#EEF2FF</color>
+    <color name="nav_item_inactive">#9CA3AF</color>
+    <color name="text_body">#6B7280</color>
+    <color name="shadow_soft_indigo">#264F46E5</color>
 </resources>
