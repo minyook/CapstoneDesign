@@ -29,10 +29,6 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ui.FirstScrean.OnboardingActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Overnight.NoActionBar" />
-        <activity
             android:name=".ui.mainscrean.OvernightActivity"
             android:exported="false" />
         <activity

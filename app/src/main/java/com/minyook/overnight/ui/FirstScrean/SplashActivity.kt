@@ -11,6 +11,8 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
 import com.minyook.overnight.R
+import com.minyook.overnight.ui.FirstScrean.AuthActivity // 👈 AuthActivity 임포트 (가정)
+// 또는 com.minyook.overnight.ui.mainscrean.OvernightActivity (프로젝트 구조에 따라)
 
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
@@ -30,7 +32,8 @@ class SplashActivity : AppCompatActivity() {
 
         Handler(Looper.getMainLooper()).postDelayed({
 
-            val intent = Intent(this, OnboardingActivity::class.java)
+            // 🔴 [수정] OnboardingActivity 대신 AuthActivity로 바로 이동
+            val intent = Intent(this, AuthActivity::class.java)
             startActivity(intent)
             finish()
         }, 2500)

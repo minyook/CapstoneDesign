@@ -16,12 +16,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <com.minyook.overnight.ui.mainscrean.AnimatedWaveView
-                android:id="@+id/header_wave_view"
-                android:layout_width="match_parent"
-                android:layout_height="180dp"
-                app:layout_constraintTop_toTopOf="parent" />
-
             <View
                 android:id="@+id/top_spacer"
                 android:layout_width="match_parent"
