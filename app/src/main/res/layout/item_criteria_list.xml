@@ -1,39 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:orientation="horizontal"
     android:paddingVertical="12dp"
-    android:background="?attr/selectableItemBackground"> <TextView
-    android:id="@+id/tv_criterion_name"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:textSize="16sp"
-    android:textStyle="bold"
-    android:textColor="@color/black"  android:layout_marginStart="16dp"
-    app:layout_constraintTop_toTopOf="parent"
-    app:layout_constraintStart_toStartOf="parent"
-    tools:text="논리성"/>
+    android:gravity="center_vertical">
 
     <TextView
-        android:id="@+id/tv_criterion_score"
+        android:id="@+id/tv_criteria_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="항목명"
+        android:textStyle="bold"
+        android:textColor="#000000"
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/tv_criteria_content"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
-        android:textColor="@android:color/darker_gray"
-        android:layout_marginEnd="16dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:text="18 / 20점"/>
+        android:text="결과 내용"
+        android:textColor="#666666"
+        android:textSize="14sp"
+        android:layout_marginEnd="16dp"/>
 
-    <View
-        android:id="@+id/divider"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="12dp"
-        android:background="#DDDDDD"
-        app:layout_constraintTop_toBottomOf="@id/tv_criterion_name"/>
+    <TextView
+        android:id="@+id/tv_criteria_score"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:text="0/0"
+        android:gravity="end"
+        android:textStyle="bold"
+        android:textColor="#4F6EF3"
+        android:textSize="14sp"/>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

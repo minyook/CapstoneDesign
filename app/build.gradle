@@ -86,4 +86,11 @@ dependencies {
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // 1. 엑셀 생성용 (Apache POI)
+    implementation 'org.apache.poi:poi:5.2.3'
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
+
+    // 2. PDF 생성용 (iText7 Core)
+    implementation 'com.itextpdf:itext7-core:7.2.5'
 }

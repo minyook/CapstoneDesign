@@ -1,132 +1,166 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white"
+    android:background="@color/app_background"
+    android:fillViewport="true"
     tools:context=".ui.file.AnalysisResultActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:paddingBottom="40dp">
 
-        <FrameLayout
-            android:id="@+id/video_container"
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_video_container"
             android:layout_width="0dp"
-            android:layout_height="200dp"
-            android:background="#212121"
+            android:layout_height="220dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="평가 영상 재생 영역 (Placeholder)"
-                android:textColor="@android:color/white"
-                android:layout_gravity="center"/>
-        </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/video_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#212121">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_media_play"
+                    app:tint="@color/white"
+                    android:layout_gravity="center"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Review Your Speech"
+                    android:textColor="#CCFFFFFF"
+                    android:textSize="12sp"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="36dp"/>
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
 
         <TextView
             android:id="@+id/tv_analysis_header"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginStart="16dp"
-            android:text="분석 결과"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/black"
-            app:layout_constraintTop_toBottomOf="@id/video_container"
+            android:layout_marginTop="24dp"
+            android:layout_marginStart="24dp"
+            android:text="Analysis Result"
+            android:textSize="22sp"
+            android:fontFamily="sans-serif-black"
+            android:textColor="@color/text_title"
+            app:layout_constraintTop_toBottomOf="@id/card_video_container"
             app:layout_constraintStart_toStartOf="parent" />
 
         <TextView
             android:id="@+id/tv_total_score"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="16dp"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/black"
+            android:layout_marginEnd="24dp"
+            android:textSize="22sp"
+            android:fontFamily="sans-serif-black"
+            android:textColor="@color/primary_tech_blue"
             app:layout_constraintTop_toTopOf="@id/tv_analysis_header"
             app:layout_constraintBottom_toBottomOf="@id/tv_analysis_header"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:text="85 / 100" />
 
         <FrameLayout
             android:id="@+id/donut_chart_container"
-            android:layout_width="160dp"
-            android:layout_height="160dp"
-            android:layout_marginTop="20dp"
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:layout_marginTop="24dp"
             app:layout_constraintTop_toBottomOf="@id/tv_analysis_header"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:background="?attr/selectableItemBackgroundBorderless">
+            app:layout_constraintEnd_toEndOf="parent">
 
             <com.github.mikephil.charting.charts.PieChart
                 android:id="@+id/pie_chart"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="center" />
+                android:layout_height="match_parent" />
 
             <TextView
                 android:id="@+id/tv_center_score_value"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
-                android:textSize="28sp"
-                android:textStyle="bold"
-                android:textColor="@android:color/black" />
+                android:textSize="32sp"
+                android:fontFamily="sans-serif-black"
+                android:textColor="@color/text_title"
+                tools:text="B+" />
         </FrameLayout>
 
-        <TextView
-            android:id="@+id/tv_total_summary"
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_summary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="20dp"
-            android:padding="12dp"
-            android:background="#F0F0F0"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/black"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="24dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
             app:layout_constraintTop_toBottomOf="@id/donut_chart_container"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground"/> <TextView
-        android:id="@+id/tv_criteria_list_header"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:layout_marginStart="16dp"
-        android:text="항목별 상세 점수 및 피드백"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="@android:color/black"
-        app:layout_constraintTop_toBottomOf="@id/tv_total_summary"
-        app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:id="@+id/tv_total_summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="20dp"
+                android:textSize="16sp"
+                android:lineSpacingExtra="4dp"
+                android:textColor="@color/text_body"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                tools:text="전반적으로 목소리 톤이 안정적이며...\n(클릭하여 자세히 보기)" />
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:id="@+id/tv_criteria_list_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:layout_marginStart="24dp"
+            android:text="Details"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_title"
+            app:layout_constraintTop_toBottomOf="@id/card_summary"
+            app:layout_constraintStart_toStartOf="parent" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_criteria_top"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:clipToPadding="false"
+            android:paddingHorizontal="16dp"
             app:layout_constraintTop_toBottomOf="@id/tv_criteria_list_header"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             tools:itemCount="2"
             tools:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            tools:orientation="vertical"
             tools:listitem="@layout/item_criteria_list" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_criteria_bottom"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="0dp"
             android:clipToPadding="false"
+            android:paddingHorizontal="16dp"
             app:layout_constraintTop_toBottomOf="@id/recycler_criteria_top"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -134,69 +168,93 @@
             tools:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             tools:listitem="@layout/item_criteria_list" />
 
-
-        <LinearLayout
-            android:id="@+id/layout_feedback_container"
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_feedback"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginHorizontal="16dp"
+            android:layout_marginHorizontal="20dp"
             android:layout_marginTop="20dp"
-            android:padding="16dp"
-            android:background="#F0F0F0"
+            app:cardBackgroundColor="#F5F7FF"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
             android:visibility="gone"
+            tools:visibility="visible"
             app:layout_constraintTop_toBottomOf="@id/recycler_criteria_bottom"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <TextView
-                android:id="@+id/tv_feedback_area"
+            <LinearLayout
+                android:id="@+id/layout_feedback_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:textColor="@android:color/black"/>
-        </LinearLayout>
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:text="AI Coach Feedback"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary_tech_blue"
+                    android:layout_marginBottom="8dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:id="@+id/tv_feedback_area"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_body"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
         <LinearLayout
             android:id="@+id/layout_download_buttons"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="24dp"
-            android:layout_marginHorizontal="16dp"
-            app:layout_constraintTop_toBottomOf="@id/layout_feedback_container"
+            android:layout_marginTop="32dp"
+            android:paddingHorizontal="20dp"
+            app:layout_constraintTop_toBottomOf="@id/card_feedback"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btn_download_excel"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_weight="1"
-                android:text="Excel 다운로드 (점수)"
-                android:layout_marginEnd="8dp"/>
+                android:layout_marginEnd="8dp"
+                android:text="Excel"
+                android:textStyle="bold"
+                android:textColor="@color/primary_tech_blue"
+                android:background="@drawable/shape_rounded_background_soft"
+                android:stateListAnimator="@null"/>
 
-            <Button
+            <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btn_download_pdf"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:layout_weight="1"
-                android:text="PDF 다운로드 (전체)"
-                android:layout_marginStart="8dp"/>
+                android:layout_marginStart="8dp"
+                android:text="PDF"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:background="@drawable/bg_gradient_hero"
+                android:stateListAnimator="@null"/>
         </LinearLayout>
 
-        <Button
+        <TextView
             android:id="@+id/btn_my_page"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:text="마이페이지로 이동"
+            android:layout_marginTop="24dp"
+            android:text="마이페이지로 돌아가기"
+            android:textColor="@color/text_body"
+            android:textSize="14sp"
+            android:padding="12dp"
             app:layout_constraintTop_toBottomOf="@id/layout_download_buttons"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"/>
+            app:layout_constraintEnd_toEndOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
