@@ -74,6 +74,9 @@ dependencies {
     // 3. Firebase 공통 KTX (일반적으로 필요)
     implementation("com.google.firebase:firebase-common-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
+
+    //firebase storage 
+    implementation("com.google.firebase:firebase-storage-ktx")
     // --- 여기까지 Firebase ---
 
     // Navigation Component 추가 (프래그먼트 연결에 필수)

@@ -25,12 +25,15 @@ class AnalysisProgressActivity : AppCompatActivity() {
     }
 
     private fun navigateToResults() {
-        // 결과 화면으로 이동 (AnalysisResultActivity는 4.에서 정의)
         val intent = Intent(this, AnalysisResultActivity::class.java)
 
-        // 뒤로가기 버튼으로 로딩 화면이 다시 나타나지 않도록 모든 이전 화면을 지웁니다.
+        // UploadActivity에서 받은 데이터들을 결과 화면으로 그대로 넘겨줍니다.
+        intent.putExtra("presentationId", getIntent().getStringExtra("presentationId"))
+        intent.putExtra("contentId", getIntent().getStringExtra("contentId"))
+        intent.putExtra("topicId", getIntent().getStringExtra("topicId"))
+
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
-        finish() // 현재 로딩 화면 종료
+        finish()
     }
 }

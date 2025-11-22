@@ -1,26 +1,38 @@
-package com.minyook.overnight.ui.file // 패키지명은 본인 프로젝트에 맞게 수정
+package com.minyook.overnight.ui.file
 
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.view.View
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import com.minyook.overnight.databinding.ActivityUploadBinding
-import com.minyook.overnight.ui.file.AnalysisProgressActivity
+import java.util.UUID
 
 class UploadActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityUploadBinding
     private var selectedFileUri: Uri? = null
 
-    // 1. 파일 선택 결과를 받는 런처 설정
+    // Step 2에서 넘겨받은 ID들
+    private var contentId: String? = null
+    private var topicId: String? = null
+
+    // Firebase
+    private lateinit var storage: FirebaseStorage
+    private lateinit var db: FirebaseFirestore
+    private lateinit var auth: FirebaseAuth
+
     private val filePickerLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             if (uri != null) {
                 selectedFileUri = uri
-                updateUiAfterSelection(uri) // 파일을 선택하면 UI를 업데이트하는 함수 호출
+                updateUiAfterSelection(uri)
             }
         }
 
@@ -29,50 +41,126 @@ class UploadActivity : AppCompatActivity() {
         binding = ActivityUploadBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // 1. Firebase 초기화
+        storage = FirebaseStorage.getInstance()
+        db = FirebaseFirestore.getInstance()
+        auth = FirebaseAuth.getInstance()
+
+        // 2. 이전 화면에서 넘겨준 ID 받기
+        contentId = intent.getStringExtra("contentId")
+        topicId = intent.getStringExtra("topicId")
+
         setupListeners()
     }
 
     private fun setupListeners() {
-        // 2. 업로드 영역 클릭 시 파일 선택창 열기
         binding.cardUploadZone.setOnClickListener {
-            // 동영상 파일만 필터링 (필요하면 "*/*"로 변경 가능)
             filePickerLauncher.launch("video/*")
         }
 
-        // 분석 버튼 클릭 리스너
+        // "분석 시작하기" 버튼 클릭 시 -> 업로드 시작
         binding.btnAnalyze.setOnClickListener {
-            if (selectedFileUri != null) {
-                // 1. 로딩 화면(AnalysisLoadingActivity)으로 이동할 Intent 생성
-                // (주의: AnalysisLoadingActivity 클래스가 만들어져 있어야 합니다)
-                val intent = Intent(this, AnalysisProgressActivity::class.java)
-
-                // 필요하다면 선택한 파일 정보를 넘겨줄 수 있습니다
-                intent.putExtra("videoUri", selectedFileUri.toString())
-
-                // 2. 화면 이동 시작
-                startActivity(intent)
+            if (selectedFileUri != null && contentId != null && topicId != null) {
+                uploadVideoToFirebase(selectedFileUri!!)
+            } else {
+                Toast.makeText(this, "오류: 필요한 정보(ID)가 없습니다.", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    // 3. 파일 선택 후 UI 업데이트 (여기가 핵심!)
-    private fun updateUiAfterSelection(uri: Uri) {
-        // (1) 파일 이름 가져와서 텍스트뷰에 넣기
-        val fileName = getFileNameFromUri(uri)
-        binding.tvFileName.text = fileName
+    /*
+    // --- 핵심: 영상 업로드 로직 ---
+    private fun uploadVideoToFirebase(uri: Uri) {
+        val user = auth.currentUser ?: return
 
-        // (2) 파일 정보 레이아웃 보여주기
-        binding.layoutFileInfo.visibility = View.VISIBLE
+        // 1. UI를 '업로드 중' 상태로 변경 (버튼 비활성화 등)
+        binding.btnAnalyze.isEnabled = false
+        binding.btnAnalyze.text = "업로드 중..."
 
-        // (3) 업로드 안내 영역은 숨기거나 유지 (선택사항. 여기선 유지하되 텍스트만 변경 예시)
-        binding.tvUploadTitle.text = "파일 변경하기"
+        // 2. 파일명 생성 (중복 방지용 UUID)
+        val fileName = "video_${UUID.randomUUID()}.mp4"
+        // 저장 경로: videos/{userId}/{fileName}
+        val storageRef = storage.reference.child("videos/${user.uid}/$fileName")
 
-        // (4) 분석 버튼 활성화 하기
-        binding.btnAnalyze.isEnabled = true
-        binding.btnAnalyze.alpha = 1.0f // 흐릿했던 버튼을 선명하게 변경
+        // 3. 업로드 시작
+        storageRef.putFile(uri)
+            .addOnSuccessListener {
+                // 4. 업로드 성공 -> 다운로드 URL 가져오기
+                storageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
+                    savePresentationToFirestore(downloadUrl.toString(), fileName)
+                }
+            }
+            .addOnFailureListener { e ->
+                binding.btnAnalyze.isEnabled = true
+                binding.btnAnalyze.text = "AI 분석 시작하기"
+                Toast.makeText(this, "업로드 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }*/
+
+    // --- [수정됨] 로컬 테스트용 업로드 함수 (Storage 건너뛰기) ---
+    private fun uploadVideoToFirebase(uri: Uri) {
+        // val user = auth.currentUser ?: return // (주석: 로컬 테스트라 user 없어도 되지만, DB저장 때 필요하니 둠)
+
+        // 1. UI 업데이트 (업로드 흉내)
+        binding.btnAnalyze.isEnabled = false
+        binding.btnAnalyze.text = "업로드 중..."
+
+        // 2. [중요] 실제 업로드 코드를 건너뜁니다.
+        // Storage에 올리는 대신, 내 폰에 있는 파일 경로(uri)를 그대로 DB에 저장합니다.
+        // 이렇게 하면 Storage 오류가 나지 않습니다.
+        val fakeDownloadUrl = uri.toString() // 로컬 주소 (content://...)
+        val fakeFileName = "local_test_video.mp4"
+
+        // 3. 1.5초 정도 딜레이를 줘서 업로드하는 척 연출 (선택사항)
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            // 바로 Firestore 저장 단계로 점프!
+            savePresentationToFirestore(fakeDownloadUrl, fakeFileName)
+        }, 1500)
     }
 
-    // URI에서 파일 이름 추출하는 헬퍼 함수
+    // --- 핵심: Firestore에 데이터 저장 ---
+    private fun savePresentationToFirestore(videoUrl: String, fileName: String) {
+        val user = auth.currentUser ?: return
+
+        // presentations 컬렉션에 저장할 데이터
+        val presentationData = hashMapOf(
+            "userId" to user.uid,
+            "contentId" to contentId,
+            "topicId" to topicId,
+            "videoUrl" to videoUrl,
+            "fileName" to fileName,
+            "status" to "processing", // 처리 중 상태로 시작
+            "totalScore" to 0,       // 아직 점수 없음
+            "uploadedAt" to com.google.firebase.Timestamp.now()
+        )
+
+        db.collection("presentations")
+            .add(presentationData)
+            .addOnSuccessListener { documentReference ->
+                // 5. 저장 성공 -> 로딩(분석 대기) 화면으로 이동
+                val intent = Intent(this, AnalysisProgressActivity::class.java)
+                intent.putExtra("presentationId", documentReference.id) // 생성된 ID 전달
+                intent.putExtra("contentId", contentId)
+                intent.putExtra("topicId", topicId)
+                startActivity(intent)
+                finish()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "데이터 저장 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                binding.btnAnalyze.isEnabled = true
+                binding.btnAnalyze.text = "AI 분석 시작하기"
+            }
+    }
+
+    private fun updateUiAfterSelection(uri: Uri) {
+        val fileName = getFileNameFromUri(uri)
+        binding.tvFileName.text = fileName
+        binding.layoutFileInfo.visibility = View.VISIBLE
+        binding.tvUploadTitle.text = "파일 변경하기"
+        binding.btnAnalyze.isEnabled = true
+        binding.btnAnalyze.alpha = 1.0f
+    }
+
     private fun getFileNameFromUri(uri: Uri): String {
         var result: String? = null
         if (uri.scheme == "content") {
