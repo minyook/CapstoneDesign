@@ -9,45 +9,50 @@ import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputEditText
-import com.google.gson.Gson // 👈 Gson 임포트 필요
+import com.google.firebase.firestore.FirebaseFirestore
 import com.minyook.overnight.R
 import com.minyook.overnight.ui.file.UploadActivity
-
-// 🔴 PresentationInfoActivity 내부 클래스로 정의되었던 데이터 클래스를 다시 정의 (공통 사용)
-data class PresentationInfo(
-    val title: String,
-    val date: String = "", // 날짜는 저장 시 추가할 수 있습니다.
-    val folderPath: String,
-    val criteria: List<String>
-)
 
 class PresentationInfoActivity : AppCompatActivity(),
     FolderSelectionBottomSheet.OnFolderSelectedListener {
 
     private lateinit var itemsContainer: LinearLayout
-    private lateinit var addItemButton: Button
-    private lateinit var startButton: Button
+    private lateinit var addItemButton: Button // (XML ID: addItemButton / MaterialButton)
+    private lateinit var startButton: Button   // (XML ID: startButton / AppCompatButton)
     private lateinit var folderPathEditText: TextInputEditText
+    private lateinit var etTeamInfo: TextInputEditText
+    private lateinit var etTopicName: TextInputEditText
 
     private var itemCounter = 0
-    private val PREFS_NAME = "AnalysisPrefs"
-    private val KEY_PRESENTATION_INFO = "presentation_info_json"
-    private val gson = Gson() // 👈 Gson 객체 초기화
+
+    // Firestore 관련 변수
+    private lateinit var db: FirebaseFirestore
+    private var selectedFolderId: String? = null // 선택된 폴더의 문서 ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_presentation_info)
 
+        // 1. Firestore 초기화
+        db = FirebaseFirestore.getInstance()
+
+        // 2. 뷰 바인딩
         itemsContainer = findViewById(R.id.itemsContainer)
         addItemButton = findViewById(R.id.addItemButton)
         startButton = findViewById(R.id.startButton)
         folderPathEditText = findViewById(R.id.edittext_folder_path)
 
+        // 팀 정보, 주제 입력창 바인딩 (XML ID 확인 필요: activity_presentation_info.xml 기준)
+        etTeamInfo = findViewById(R.id.edittext_team_info)
+        etTopicName = findViewById(R.id.edittext_topic_info)
+
+        // 3. 폴더 선택 팝업
         folderPathEditText.setOnClickListener {
             val bottomSheet = FolderSelectionBottomSheet()
             bottomSheet.show(supportFragmentManager, FolderSelectionBottomSheet.TAG)
         }
 
+        // 4. 기준 항목 추가 버튼
         addItemButton.setOnClickListener {
             if (itemsContainer.childCount < 5) {
                 addNewItemCard()
@@ -56,26 +61,24 @@ class PresentationInfoActivity : AppCompatActivity(),
             }
         }
 
-        // 🔴 '발표 시작하기' 버튼 클릭 리스너 수정: 데이터 저장 로직 추가 🔴
+        // 5. 저장 및 시작 버튼 -> Firestore 저장 로직 호출
         startButton.setOnClickListener {
-            if (savePresentationInfoData()) { // 👈 데이터 저장 성공 시에만 이동
-                val intent = Intent(this, UploadActivity::class.java)
-                startActivity(intent)
-            }
+            saveTopicToFirestore()
         }
 
+        // 초기 항목 1개 추가
         addNewItemCard()
     }
 
     /**
-     * 6. 새 항목 카드를 itemsContainer에 추가하는 함수 (동일)
+     * 채점 기준 항목(Card)을 UI에 동적으로 추가
      */
     private fun addNewItemCard() {
         itemCounter++
 
         val inflater = LayoutInflater.from(this)
         val itemCardView = inflater.inflate(
-            R.layout.item_criterion,
+            R.layout.item_criterion, // 보내주신 item_criterion.xml 사용
             itemsContainer,
             false
         )
@@ -83,67 +86,108 @@ class PresentationInfoActivity : AppCompatActivity(),
         val itemNameEditText: TextInputEditText = itemCardView.findViewById(R.id.edittext_item_name)
         val deleteButton: ImageButton = itemCardView.findViewById(R.id.button_delete_item)
 
-        itemNameEditText.setText("항목 $itemCounter")
+        itemNameEditText.setText("평가 항목 $itemCounter")
 
         deleteButton.setOnClickListener {
             itemsContainer.removeView(itemCardView)
+            itemCounter--
         }
 
         itemsContainer.addView(itemCardView)
     }
 
     /**
-     * FolderSelectionBottomSheet에서 폴더를 선택하면 호출되는 콜백 함수 (동일)
+     * FolderSelectionBottomSheet에서 폴더 선택 시 호출 (인터페이스 수정됨)
      */
-    override fun onFolderSelected(path: String) {
-        folderPathEditText.setText(path)
-        Toast.makeText(this, "경로 설정: $path", Toast.LENGTH_SHORT).show()
+    override fun onFolderSelected(folderId: String, folderName: String) {
+        selectedFolderId = folderId
+        folderPathEditText.setText(folderName) // 화면엔 이름만 표시
     }
 
-    // -----------------------------------------------------------------
-    // 💾 신규: 입력된 데이터를 수집하여 로컬에 저장하는 핵심 함수
-    // -----------------------------------------------------------------
-
-    private fun savePresentationInfoData(): Boolean {
-        // 1. 폴더 경로 확인 (필수 입력값)
-        val folderPath = folderPathEditText.text?.toString()
-        if (folderPath.isNullOrBlank()) {
-            Toast.makeText(this, "폴더 경로를 반드시 설정해야 합니다.", Toast.LENGTH_LONG).show()
-            return false
+    /**
+     * 입력된 모든 정보를 Firestore 'topics' 컬렉션에 저장
+     */
+    private fun saveTopicToFirestore() {
+        // 1. 유효성 검사: 폴더 선택 여부
+        if (selectedFolderId == null) {
+            Toast.makeText(this, "폴더(과목)를 먼저 선택해주세요.", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        // 2. 발표 기준 항목 수집
-        val criteriaList = mutableListOf<String>()
-        var allCriteriaValid = true
+        val teamInfo = etTeamInfo.text.toString().trim()
+        val topicName = etTopicName.text.toString().trim()
+
+        if (teamInfo.isEmpty() || topicName.isEmpty()) {
+            Toast.makeText(this, "팀 정보와 발표 주제를 입력해주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 2. 채점 기준 리스트 수집
+        val standardsList = mutableListOf<HashMap<String, Any>>()
+        var totalScore = 0
 
         for (i in 0 until itemsContainer.childCount) {
-            val itemCardView = itemsContainer.getChildAt(i)
-            val nameEditText: TextInputEditText = itemCardView.findViewById(R.id.edittext_item_name)
-            val itemName = nameEditText.text?.toString()
+            val view = itemsContainer.getChildAt(i)
+            val etName = view.findViewById<TextInputEditText>(R.id.edittext_item_name)
+            val etContent = view.findViewById<TextInputEditText>(R.id.edittext_item_content)
+            val etScore = view.findViewById<TextInputEditText>(R.id.edittext_item_score)
 
-            if (itemName.isNullOrBlank()) {
-                Toast.makeText(this, "항목 이름을 모두 채워주세요.", Toast.LENGTH_LONG).show()
-                allCriteriaValid = false
-                break
+            val name = etName.text.toString().trim()
+            val detail = etContent.text.toString().trim()
+            val scoreStr = etScore.text.toString().trim()
+
+            if (name.isEmpty() || scoreStr.isEmpty()) {
+                Toast.makeText(this, "모든 평가 항목의 이름과 배점을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                return
             }
-            criteriaList.add(itemName)
+
+            val score = scoreStr.toIntOrNull() ?: 0
+            totalScore += score
+
+            // Standard 데이터 구조 생성
+            val standardMap = hashMapOf <String, Any> (
+                "standardName" to name,
+                "standardDetail" to detail,
+                "standardScore" to score
+            )
+            standardsList.add(standardMap)
         }
 
-        if (!allCriteriaValid) return false
+        if (totalScore != 100) {
+            Toast.makeText(this, "배점의 총합은 100점이 되어야 합니다. (현재: ${totalScore}점)", Toast.LENGTH_LONG).show()
+            return
+        }
 
-        // 3. PresentationInfo 객체 생성
-        val presentationInfo = PresentationInfo(
-            title = "발표 제목 (미구현)", // TODO: 발표 제목 입력 필드가 있다면 해당 값으로 대체
-            folderPath = folderPath,
-            criteria = criteriaList
+        // 3. 저장할 Topic 데이터 생성
+        // 경로: contents/{contentId}/topics/{topicId}
+        val topicData = hashMapOf(
+            "contentId" to selectedFolderId,
+            "topicName" to topicName,
+            "teamInfo" to teamInfo,
+            "standards" to standardsList,
+            "createdAt" to com.google.firebase.Timestamp.now()
         )
 
-        // 4. SharedPreferences에 JSON 문자열로 저장
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val jsonString = gson.toJson(presentationInfo)
-        prefs.edit().putString(KEY_PRESENTATION_INFO, jsonString).apply()
+        startButton.isEnabled = false // 중복 클릭 방지
 
-        Toast.makeText(this, "발표 기준이 로컬에 저장되었습니다.", Toast.LENGTH_SHORT).show()
-        return true
+        // 4. Firestore 저장
+        db.collection("contents").document(selectedFolderId!!)
+            .collection("topics")
+            .add(topicData)
+            .addOnSuccessListener { documentReference ->
+                val newTopicId = documentReference.id
+                Toast.makeText(this, "발표 주제가 저장되었습니다.", Toast.LENGTH_SHORT).show()
+
+                // 5. 다음 화면(UploadActivity)으로 이동하면서 ID 전달
+                val intent = Intent(this, UploadActivity::class.java)
+                intent.putExtra("contentId", selectedFolderId)
+                intent.putExtra("topicId", newTopicId) // ⭐ 방금 만든 주제 ID 전달
+                startActivity(intent)
+                finish() // 뒤로가기 시 다시 입력창 안 나오게
+            }
+            .addOnFailureListener { e ->
+                startButton.isEnabled = true
+                Toast.makeText(this, "저장 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 }
