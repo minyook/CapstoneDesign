@@ -12,6 +12,9 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -31,6 +34,7 @@ class LoginFragment : Fragment() {
     // 상수 정의
     private val PREFS_FILE_NAME = "OvernightAppPrefs"
     private val USER_UID_KEY = "user_uid"
+    // Navigation Graph에서 정의된 회원가입 액션 ID
     private val ACTION_TO_SIGN_UP = R.id.action_loginFragment_to_signUpFragment
 
     // ViewBinding
@@ -39,7 +43,7 @@ class LoginFragment : Fragment() {
 
     // Firebase 객체
     private lateinit var auth: FirebaseAuth
-    private lateinit var db: FirebaseFirestore // Firestore 객체
+    private lateinit var db: FirebaseFirestore
 
     // Google Login 관련
     private lateinit var googleSignInClient: GoogleSignInClient
@@ -48,11 +52,9 @@ class LoginFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Firebase 인스턴스 초기화
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
-        // Google 로그인 결과 콜백 등록
         googleSignInLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
@@ -61,7 +63,6 @@ class LoginFragment : Fragment() {
                 try {
                     val account = task.getResult(ApiException::class.java)!!
                     Log.d("Auth", "Google 계정 인증 성공: ${account.email}")
-                    // Firebase 인증 및 DB 저장 로직 호출
                     firebaseAuthWithGoogle(account)
                 } catch (e: ApiException) {
                     Log.w("Auth", "Google 로그인 실패", e)
@@ -78,7 +79,6 @@ class LoginFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentLoginBinding.inflate(inflater, container, false)
-        // 자동 로그인 체크
         checkLoginStatusAndNavigate()
         return binding.root
     }
@@ -86,7 +86,9 @@ class LoginFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Google 로그인 옵션 설정
+        // 시스템 UI 숨기기 적용
+        hideSystemUI()
+
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
             .requestEmail()
@@ -96,6 +98,11 @@ class LoginFragment : Fragment() {
 
         setupClickListeners()
         setupSignUpPromptText()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        hideSystemUI()
     }
 
     // --- [핵심 기능] Google 로그인 후 Firestore 연동 ---
@@ -108,39 +115,33 @@ class LoginFragment : Fragment() {
                     val user = auth.currentUser
                     val uid = user?.uid ?: return@addOnCompleteListener
 
-                    // Firestore 문서 참조 (컬렉션: user, 문서ID: uid)
                     val userDocRef = db.collection("user").document(uid)
 
-                    // 1. DB에 이미 유저 정보가 있는지 확인
                     userDocRef.get().addOnSuccessListener { document ->
                         if (document.exists()) {
-                            // [A] 이미 가입된 유저 -> 기존 정보 유지 (전화번호 등 덮어쓰기 방지)
                             Log.d("Firestore", "기존 회원 로그인: $uid")
-
-                            saveUserUid(uid) // 세션 저장
+                            saveUserUid(uid)
                             Toast.makeText(requireContext(), "환영합니다! ${user.displayName}님", Toast.LENGTH_SHORT).show()
                             navigateToOvernightActivity()
                         } else {
-                            // [B] 신규 유저 -> DB 형식에 맞춰 데이터 생성
+                            // 신규 유저 -> DB 형식에 맞춰 데이터 생성
                             val newUserInfo = hashMapOf(
                                 "email" to (user.email ?: ""),
                                 "name" to (user.displayName ?: "Google User"),
-                                "user_docid" to uid,  // 사진 속 형식 유지
-                                "birth" to "",        // 빈 값으로 필드 생성
-                                "phone" to ""         // 빈 값으로 필드 생성
+                                "user_docid" to uid,
+                                "birth" to "",
+                                "phone" to ""
                             )
 
                             userDocRef.set(newUserInfo)
                                 .addOnSuccessListener {
                                     Log.d("Firestore", "신규 구글 회원 DB 생성 완료")
-
-                                    saveUserUid(uid) // 세션 저장
+                                    saveUserUid(uid)
                                     Toast.makeText(requireContext(), "구글 계정으로 가입되었습니다.", Toast.LENGTH_SHORT).show()
                                     navigateToOvernightActivity()
                                 }
                                 .addOnFailureListener { e ->
                                     Log.e("Firestore", "DB 생성 실패", e)
-                                    // DB 저장은 실패했더라도 로그인은 성공 처리 (필요 시 정책에 따라 변경)
                                     saveUserUid(uid)
                                     navigateToOvernightActivity()
                                 }
@@ -216,6 +217,7 @@ class LoginFragment : Fragment() {
             Toast.makeText(requireContext(), "준비 중입니다.", Toast.LENGTH_SHORT).show()
         }
 
+        // ⭐ 복구된 회원가입 클릭 리스너
         binding.tvSignupPrompt.setOnClickListener {
             findNavController().navigate(ACTION_TO_SIGN_UP)
         }
@@ -228,8 +230,19 @@ class LoginFragment : Fragment() {
 
     @Suppress("DEPRECATION")
     private fun setupSignUpPromptText() {
+        // XML에서 텍스트가 이미 설정되어 있거나, 리소스 파일을 통해 설정됨
         val text = getString(R.string.prompt_signup)
         binding.tvSignupPrompt.text = Html.fromHtml(text, Html.FROM_HTML_MODE_LEGACY)
+    }
+
+    private fun hideSystemUI() {
+        val window = requireActivity().window
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+
+        windowInsetsController.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
     }
 
     override fun onDestroyView() {

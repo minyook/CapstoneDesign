@@ -20,7 +20,7 @@
         app:title="Create Account"
         app:titleTextAppearance="@style/TextAppearance.MaterialComponents.Headline5"
         app:titleTextColor="@color/text_title"
-        app:subtitle="서비스 이용을 위해 회원가입을 진행해주세요."
+        app:subtitle="회원가입을 진행해주세요."
         app:subtitleTextColor="@color/sub_text_color"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -42,7 +42,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="20dp">
+            android:layout_marginTop="20dp">
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_name"
@@ -51,6 +51,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:hint="이름"
+                android:textColorHint="@color/dark_gray"
                 app:boxStrokeColor="@color/primary_tech_blue"
                 app:boxCornerRadiusTopStart="12dp"
                 app:boxCornerRadiusTopEnd="12dp"
@@ -75,6 +76,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:hint="이메일"
+                android:textColorHint="@color/dark_gray"
                 app:boxStrokeColor="@color/primary_tech_blue"
                 app:boxCornerRadiusTopStart="12dp"
                 app:boxCornerRadiusTopEnd="12dp"
@@ -99,6 +101,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:hint="생년월일"
+                android:textColorHint="@color/dark_gray"
                 app:endIconDrawable="@drawable/ic_calendar"
                 app:endIconMode="custom"
                 app:endIconTint="@color/sub_text_color"
@@ -127,6 +130,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:hint="휴대폰 번호"
+                android:textColorHint="@color/dark_gray"
                 app:prefixText="+82 "
                 app:prefixTextAppearance="?attr/textAppearanceBodyMedium"
                 app:boxStrokeColor="@color/primary_tech_blue"
@@ -152,6 +156,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="비밀번호"
+                android:textColorHint="@color/dark_gray"
                 app:endIconMode="password_toggle"
                 app:endIconTint="@color/sub_text_color"
                 app:boxStrokeColor="@color/primary_tech_blue"
@@ -199,11 +204,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="이미 계정이 있으신가요? "
-            android:textColor="@color/sub_text_color"/>
 
         <TextView
             android:id="@+id/tv_login_prompt"
