@@ -9,7 +9,8 @@ import com.minyook.overnight.R
 import com.minyook.overnight.data.model.CriterionResult
 
 /**
- * 도넛 차트 아래에 항목별 이름과 점수를 수직으로 표시하는 리스트 어댑터.
+ * 결과 화면의 리스트를 담당하는 어댑터
+ * (디자인 변경: 기준명 -> 피드백 -> 점수 순서로 세로 배치)
  */
 class CriteriaListAdapter(
     private val results: List<CriterionResult>,
@@ -17,20 +18,19 @@ class CriteriaListAdapter(
 ) : RecyclerView.Adapter<CriteriaListAdapter.ViewHolder>() {
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        // ⚠️ 수정됨: XML 파일(item_criteria_list.xml)에 정의된 ID와 똑같아야 합니다.
         val tvCriterionName: TextView = itemView.findViewById(R.id.tv_criteria_title)
+        val tvCriterionContent: TextView = itemView.findViewById(R.id.tv_criteria_content) // 피드백
         val tvCriterionScore: TextView = itemView.findViewById(R.id.tv_criteria_score)
 
-        // (선택사항) 만약 '적절함', '빠름' 같은 텍스트도 보여주려면 아래 주석 해제 및 사용
-        // val tvCriterionContent: TextView = itemView.findViewById(R.id.tv_criteria_content)
-
         fun bind(result: CriterionResult) {
-            // ⭐️ 로컬에서 로드된 result 객체의 값 사용
+            // 1. 기준명
             tvCriterionName.text = result.criterionName
-            tvCriterionScore.text = "${result.actualScore} / ${result.maxScore}"
 
-            // (선택사항) 내용 바인딩 예시
-            // tvCriterionContent.text = result.contentString
+            // 2. 피드백 내용 (없으면 기본 문구)
+            tvCriterionContent.text = if (result.feedback.isNotEmpty()) result.feedback else "피드백이 없습니다."
+
+            // 3. 점수 (획득점수 / 만점)
+            tvCriterionScore.text = "${result.actualScore} / ${result.maxScore}"
 
             itemView.setOnClickListener {
                 onItemClicked(result)

@@ -4,29 +4,38 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
+import com.google.gson.Gson
+import com.minyook.overnight.data.model.AnalysisResponse
+import com.minyook.overnight.data.model.ScoringCriteria
+import com.minyook.overnight.data.network.RetrofitClient
 import com.minyook.overnight.databinding.ActivityUploadBinding
-import java.util.UUID
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.io.File
+import java.io.FileOutputStream
 
 class UploadActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityUploadBinding
     private var selectedFileUri: Uri? = null
 
-    // Step 2에서 넘겨받은 ID들
+    // 이전 화면에서 받은 ID
     private var contentId: String? = null
     private var topicId: String? = null
 
-    // Firebase
-    private lateinit var storage: FirebaseStorage
+    // DB (채점 기준 불러오기용)
     private lateinit var db: FirebaseFirestore
-    private lateinit var auth: FirebaseAuth
 
     private val filePickerLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -41,12 +50,8 @@ class UploadActivity : AppCompatActivity() {
         binding = ActivityUploadBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 1. Firebase 초기화
-        storage = FirebaseStorage.getInstance()
         db = FirebaseFirestore.getInstance()
-        auth = FirebaseAuth.getInstance()
 
-        // 2. 이전 화면에서 넘겨준 ID 받기
         contentId = intent.getStringExtra("contentId")
         topicId = intent.getStringExtra("topicId")
 
@@ -58,107 +63,134 @@ class UploadActivity : AppCompatActivity() {
             filePickerLauncher.launch("video/*")
         }
 
-        // "분석 시작하기" 버튼 클릭 시 -> 업로드 시작
         binding.btnAnalyze.setOnClickListener {
             if (selectedFileUri != null && contentId != null && topicId != null) {
-                uploadVideoToFirebase(selectedFileUri!!)
+                // 1. 먼저 DB에서 채점 기준을 가져오고 -> 업로드를 시작합니다.
+                fetchCriteriaAndUpload(selectedFileUri!!)
             } else {
-                Toast.makeText(this, "오류: 필요한 정보(ID)가 없습니다.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "오류: 필요한 정보가 없습니다.", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    /*
-    // --- 핵심: 영상 업로드 로직 ---
-    private fun uploadVideoToFirebase(uri: Uri) {
-        val user = auth.currentUser ?: return
-
-        // 1. UI를 '업로드 중' 상태로 변경 (버튼 비활성화 등)
+    // ---------------------------------------------------------
+    // 1단계: Firestore에서 채점 기준(Standard) 가져오기
+    // ---------------------------------------------------------
+    private fun fetchCriteriaAndUpload(uri: Uri) {
         binding.btnAnalyze.isEnabled = false
-        binding.btnAnalyze.text = "업로드 중..."
+        binding.btnAnalyze.text = "채점 기준 불러오는 중..."
 
-        // 2. 파일명 생성 (중복 방지용 UUID)
-        val fileName = "video_${UUID.randomUUID()}.mp4"
-        // 저장 경로: videos/{userId}/{fileName}
-        val storageRef = storage.reference.child("videos/${user.uid}/$fileName")
+        db.collection("contents").document(contentId!!)
+            .collection("topics").document(topicId!!)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    // DB에 저장된 Map 리스트를 가져옴
+                    val standardsMap = document.get("standards") as? List<HashMap<String, Any>>
 
-        // 3. 업로드 시작
-        storageRef.putFile(uri)
-            .addOnSuccessListener {
-                // 4. 업로드 성공 -> 다운로드 URL 가져오기
-                storageRef.downloadUrl.addOnSuccessListener { downloadUrl ->
-                    savePresentationToFirestore(downloadUrl.toString(), fileName)
+                    // 서버 포맷(ScoringCriteria)으로 변환
+                    val criteriaList = ArrayList<ScoringCriteria>()
+                    if (standardsMap != null) {
+                        for (map in standardsMap) {
+                            val name = map["standardName"] as? String ?: ""
+                            val score = (map["standardScore"] as? Number)?.toInt() ?: 0
+                            val desc = map["standardDetail"] as? String ?: ""
+                            criteriaList.add(ScoringCriteria(name, score, desc))
+                        }
+                    }
+
+                    // 기준을 다 가져왔으니 이제 진짜 업로드 시작!
+                    uploadVideoToServer(uri, criteriaList)
+
+                } else {
+                    Toast.makeText(this, "채점 기준을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    resetButton()
                 }
             }
-            .addOnFailureListener { e ->
-                binding.btnAnalyze.isEnabled = true
-                binding.btnAnalyze.text = "AI 분석 시작하기"
-                Toast.makeText(this, "업로드 실패: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-    }*/
-
-    // --- [수정됨] 로컬 테스트용 업로드 함수 (Storage 건너뛰기) ---
-    private fun uploadVideoToFirebase(uri: Uri) {
-        // val user = auth.currentUser ?: return // (주석: 로컬 테스트라 user 없어도 되지만, DB저장 때 필요하니 둠)
-
-        // 1. UI 업데이트 (업로드 흉내)
-        binding.btnAnalyze.isEnabled = false
-        binding.btnAnalyze.text = "업로드 중..."
-
-        // 2. [중요] 실제 업로드 코드를 건너뜁니다.
-        // Storage에 올리는 대신, 내 폰에 있는 파일 경로(uri)를 그대로 DB에 저장합니다.
-        // 이렇게 하면 Storage 오류가 나지 않습니다.
-        val fakeDownloadUrl = uri.toString() // 로컬 주소 (content://...)
-        val fakeFileName = "local_test_video.mp4"
-
-        // 3. 1.5초 정도 딜레이를 줘서 업로드하는 척 연출 (선택사항)
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            // 바로 Firestore 저장 단계로 점프!
-            savePresentationToFirestore(fakeDownloadUrl, fakeFileName)
-        }, 1500)
-    }
-
-    // --- 핵심: Firestore에 데이터 저장 ---
-    private fun savePresentationToFirestore(videoUrl: String, fileName: String) {
-        val user = auth.currentUser ?: return
-
-        // presentations 컬렉션에 저장할 데이터
-        val presentationData = hashMapOf(
-            "userId" to user.uid,
-            "contentId" to contentId,
-            "topicId" to topicId,
-            "videoUrl" to videoUrl,
-            "fileName" to fileName,
-            "status" to "processing", // 처리 중 상태로 시작
-            "totalScore" to 0,       // 아직 점수 없음
-            "uploadedAt" to com.google.firebase.Timestamp.now()
-        )
-
-        db.collection("presentations")
-            .add(presentationData)
-            .addOnSuccessListener { documentReference ->
-                // 5. 저장 성공 -> 로딩(분석 대기) 화면으로 이동
-                val intent = Intent(this, AnalysisProgressActivity::class.java)
-                intent.putExtra("presentationId", documentReference.id) // 생성된 ID 전달
-                intent.putExtra("contentId", contentId)
-                intent.putExtra("topicId", topicId)
-                startActivity(intent)
-                finish()
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "데이터 저장 실패: ${e.message}", Toast.LENGTH_SHORT).show()
-                binding.btnAnalyze.isEnabled = true
-                binding.btnAnalyze.text = "AI 분석 시작하기"
+            .addOnFailureListener {
+                Toast.makeText(this, "DB 오류: ${it.message}", Toast.LENGTH_SHORT).show()
+                resetButton()
             }
     }
 
-    private fun updateUiAfterSelection(uri: Uri) {
-        val fileName = getFileNameFromUri(uri)
-        binding.tvFileName.text = fileName
-        binding.layoutFileInfo.visibility = View.VISIBLE
-        binding.tvUploadTitle.text = "파일 변경하기"
-        binding.btnAnalyze.isEnabled = true
-        binding.btnAnalyze.alpha = 1.0f
+    // ---------------------------------------------------------
+    // 2단계: FastAPI 서버로 영상과 기준 전송하기 (Retrofit)
+    // ---------------------------------------------------------
+    private fun uploadVideoToServer(uri: Uri, criteriaList: List<ScoringCriteria>) {
+        binding.btnAnalyze.text = "서버로 전송 중..."
+
+        // 1. Uri -> 실제 파일(File)로 변환 (캐시 폴더에 복사)
+        val file = getFileFromUri(uri)
+        if (file == null) {
+            Toast.makeText(this, "파일 변환 실패", Toast.LENGTH_SHORT).show()
+            resetButton()
+            return
+        }
+
+        // 2. RequestBody 생성 (영상 파일)
+        // "video/*" 또는 "multipart/form-data"
+        val requestFile = file.asRequestBody("video/mp4".toMediaTypeOrNull())
+        val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
+
+        // 3. RequestBody 생성 (채점 기준 JSON 문자열)
+        val gson = Gson()
+        val criteriaJson = gson.toJson(criteriaList) // 리스트를 JSON 문자열로 변환
+        val criteriaBody = criteriaJson.toRequestBody("text/plain".toMediaTypeOrNull())
+
+        // 4. Retrofit 전송 시작
+        RetrofitClient.instance.analyzeVideo(body, criteriaBody)
+            .enqueue(object : Callback<AnalysisResponse> {
+                override fun onResponse(
+                    call: Call<AnalysisResponse>,
+                    response: Response<AnalysisResponse>
+                ) {
+                    if (response.isSuccessful && response.body() != null) {
+                        // 성공! Job ID를 받았습니다.
+                        val jobId = response.body()!!.jobId
+                        Log.d("Upload", "Job ID: $jobId")
+
+                        // 로딩 화면으로 이동 (Job ID 전달)
+                        val intent = Intent(this@UploadActivity, AnalysisProgressActivity::class.java)
+                        intent.putExtra("jobId", jobId) // ⭐ 핵심: 서버 작업 ID
+                        intent.putExtra("contentId", contentId)
+                        intent.putExtra("topicId", topicId)
+                        startActivity(intent)
+                        finish()
+                    } else {
+                        Toast.makeText(this@UploadActivity, "서버 오류: ${response.code()}", Toast.LENGTH_SHORT).show()
+                        resetButton()
+                    }
+                }
+
+                override fun onFailure(call: Call<AnalysisResponse>, t: Throwable) {
+                    Toast.makeText(this@UploadActivity, "통신 실패: ${t.message}", Toast.LENGTH_LONG).show()
+                    Log.e("Upload", "Error", t)
+                    resetButton()
+                }
+            })
+    }
+
+    // ---------------------------------------------------------
+    // 유틸리티: Uri -> 임시 파일 변환
+    // ---------------------------------------------------------
+    private fun getFileFromUri(uri: Uri): File? {
+        try {
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            val fileName = getFileNameFromUri(uri)
+            // 앱 캐시 폴더에 임시 파일 생성
+            val tempFile = File(cacheDir, fileName)
+            val outputStream = FileOutputStream(tempFile)
+
+            inputStream.use { input ->
+                outputStream.use { output ->
+                    input.copyTo(output)
+                }
+            }
+            return tempFile
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
+        }
     }
 
     private fun getFileNameFromUri(uri: Uri): String {
@@ -181,6 +213,20 @@ class UploadActivity : AppCompatActivity() {
                 result = result?.substring(cut + 1)
             }
         }
-        return result ?: "unknown_file.mp4"
+        return result ?: "temp_video.mp4"
+    }
+
+    private fun updateUiAfterSelection(uri: Uri) {
+        val fileName = getFileNameFromUri(uri)
+        binding.tvFileName.text = fileName
+        binding.layoutFileInfo.visibility = View.VISIBLE
+        binding.tvUploadTitle.text = "파일 변경하기"
+        resetButton()
+    }
+
+    private fun resetButton() {
+        binding.btnAnalyze.isEnabled = true
+        binding.btnAnalyze.text = "AI 분석 시작하기"
+        binding.btnAnalyze.alpha = 1.0f
     }
 }

@@ -1,38 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:paddingVertical="12dp"
-    android:gravity="center_vertical">
+    android:layout_marginBottom="12dp"
+    android:layout_marginHorizontal="4dp"
+    app:cardBackgroundColor="@color/white"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:contentPadding="16dp">
 
-    <TextView
-        android:id="@+id/tv_criteria_title"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="항목명"
-        android:textStyle="bold"
-        android:textColor="#000000"
-        android:textSize="14sp"/>
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/tv_criteria_content"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="결과 내용"
-        android:textColor="#666666"
-        android:textSize="14sp"
-        android:layout_marginEnd="16dp"/>
+        <!-- 1. 기준명 -->
+        <TextView
+            android:id="@+id/tv_criteria_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="기준 항목"
+            android:textStyle="bold"
+            android:textColor="#333333"
+            android:textSize="16sp"
+            android:layout_marginBottom="6dp"/>
 
-    <TextView
-        android:id="@+id/tv_criteria_score"
-        android:layout_width="50dp"
-        android:layout_height="wrap_content"
-        android:text="0/0"
-        android:gravity="end"
-        android:textStyle="bold"
-        android:textColor="#4F6EF3"
-        android:textSize="14sp"/>
+        <!-- 2. 기준별 피드백 (내용) -->
+        <TextView
+            android:id="@+id/tv_criteria_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="여기에 AI가 분석한 상세 피드백 내용이 들어갑니다."
+            android:textColor="#555555"
+            android:textSize="14sp"
+            android:lineSpacingExtra="4dp"
+            android:background="#F8F9FA"
+            android:padding="10dp"
+            android:layout_marginBottom="8dp"/>
 
-</LinearLayout>
+        <!-- 3. 점수 / 총점 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end|center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:text="획득 점수: "
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="#777777"/>
+
+            <TextView
+                android:id="@+id/tv_criteria_score"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="20 / 25"
+                android:textStyle="bold"
+                android:textColor="#4F6EF3"
+                android:textSize="16sp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
