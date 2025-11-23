@@ -10,9 +10,7 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-
         android:usesCleartextTraffic="true"
-
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Overnight"
@@ -30,7 +28,6 @@
             android:theme="@style/Theme.Overnight.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -51,6 +48,15 @@
         <activity
             android:name=".ui.file.UploadActivity"
             android:exported="false" />
+
+        <!-- ★★★ [추가됨] 마이페이지에서 호출하는 폴더/파일 관련 Activity ★★★ -->
+        <activity
+            android:name=".ui.file.SubjectFolderActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.file.FileListActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>
