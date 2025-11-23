@@ -261,7 +261,7 @@ class AnalysisResultActivity : AppCompatActivity() {
                 val document = Document(pdfDoc)
 
                 try {
-                    val font = PdfFontFactory.createFont("assets/font.ttf", PdfEncodings.IDENTITY_H)
+                    val font = PdfFontFactory.createFont("assets/malgun.ttf", PdfEncodings.IDENTITY_H)
                     document.setFont(font)
                 } catch (e: Exception) {
                     runOnUiThread { Toast.makeText(this, "폰트 없음", Toast.LENGTH_SHORT).show() }
