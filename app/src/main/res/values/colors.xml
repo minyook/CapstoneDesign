@@ -15,8 +15,6 @@
     <color name="accent_soft_blue">#E0E7FF</color>
     <color name="nav_indicator">#EEF2FF</color>
 
-    <color name="hero_gradient_start">#CB8BFF</color>
-    <color name="hero_gradient_end">#7450FE</color>
 
     <color name="text_title">#1F2937</color>
     <color name="text_body">#6B7280</color>

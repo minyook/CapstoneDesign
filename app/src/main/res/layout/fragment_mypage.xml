@@ -190,7 +190,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="전체 노트"
+                    android:text="Subject History"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_title"/>
@@ -204,7 +204,6 @@
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_all_notes"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardBackgroundColor="@color/white"
@@ -237,11 +236,10 @@
                         android:layout_weight="1"
                         android:orientation="vertical"
                         android:layout_marginStart="16dp">
-
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="전체 노트 보기"
+                            android:text="캡스톤 디자인"
                             android:textSize="16sp"
                             android:textStyle="bold"
                             android:textColor="@color/text_title"/>
@@ -249,7 +247,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="저장된 모든 발표 기록 확인"
+                            android:text="최근 발표: 2024.11.22"
                             android:textColor="@color/text_body"
                             android:textSize="13sp"/>
                     </LinearLayout>
@@ -262,18 +260,6 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btn_logout"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginTop="40dp"
-                android:layout_marginBottom="20dp"
-                android:text="로그아웃"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:background="@drawable/shape_rounded_background_red"
-                android:stateListAnimator="@null"/>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

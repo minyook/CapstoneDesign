@@ -12,7 +12,7 @@
         android:id="@+id/iv_splash_logo"
         android:layout_width="150dp"
         android:layout_height="150dp"
-        android:src="@drawable/ic_overnight_logo1"
+        android:src="@drawable/ic_overnight_logo"
         android:visibility="invisible"
         app:layout_constraintBottom_toTopOf="@id/progress_bar"
         app:layout_constraintEnd_toEndOf="parent"
