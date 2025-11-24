@@ -13,7 +13,6 @@ object RetrofitClient {
     // ⚠️ [중요] 실제 폰이라면 "http://192.168.X.X:8000/" (컴퓨터 내부 IP)
     // 사용자님이 "127.0.0.1"이라고 하셨지만 안드로이드에서는 아래 주소를 써야 합니다.
     private const val BASE_URL = "http://10.0.2.2:8000/"
-
     private val okHttpClient: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY // 통신 로그 자세히 보기

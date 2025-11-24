@@ -24,6 +24,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.minyook.overnight.R
 import com.minyook.overnight.databinding.DialogAddChildBinding
 import com.minyook.overnight.databinding.FragmentFolderBinding
+import com.minyook.overnight.ui.file.SubjectFolderActivity
 import com.minyook.overnight.ui.mainscrean.PresentationInfoActivity
 import com.minyook.overnight.ui.folder.ChildNotesFragment
 
@@ -77,13 +78,12 @@ class FolderFragment : Fragment() {
             onAddClicked = { groupName ->
                 showAddFolderDialog()
             },
-            onChildClicked = { childName ->
-                // 하위 항목 클릭 -> ChildNotesFragment 이동
-                val fragment = ChildNotesFragment.newInstance(childName)
-                parentFragmentManager.beginTransaction()
-                    .replace(R.id.fragment_container, fragment)
-                    .addToBackStack(null)
-                    .commit()
+            onChildClicked = { child ->
+                // ⭐️ 여기가 핵심! 클릭된 폴더의 ID와 이름을 가지고 이동합니다.
+                val intent = Intent(requireContext(), SubjectFolderActivity::class.java)
+                intent.putExtra("folderId", child.id)     // 폴더 ID
+                intent.putExtra("folderName", child.name) // 폴더 이름
+                startActivity(intent)
             },
             onTrashClicked = {
                 // 휴지통 클릭 -> TrashNotesFragment 이동

@@ -78,6 +78,9 @@ class FileListActivity : AppCompatActivity() {
                 }
 
                 for (doc in result) {
+                    // 1. topicId 추출 (추가됨)
+                    val topicId = doc.getString("topicId") ?: ""
+
                     // presentation 문서에서 데이터 가져오기
                     val title = doc.getString("topicName") ?: "제목 없음"
 
@@ -93,7 +96,14 @@ class FileListActivity : AppCompatActivity() {
                     val summary = doc.getString("overallFeedback") ?: "요약 정보 없음"
                     val dateStr = getDateString(doc.getTimestamp("gradeAt"))
 
-                    fileList.add(PresentationFile(doc.id, title, dateStr, score, summary))
+                    fileList.add(PresentationFile(
+                        id = doc.id,
+                        topicId = topicId,
+                        title = title,
+                        date = dateStr,
+                        score = score,
+                        summary = summary
+                    ))
                 }
                 adapter.notifyDataSetChanged()
             }

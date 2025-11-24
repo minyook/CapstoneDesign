@@ -23,7 +23,7 @@ class AnalysisProgressActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAnalysisProgressBinding
     private var jobId: String? = null
 
-    // ⭐️ [수정 1] 4단계 경로를 위한 ID 변수들 선언
+    // 1 4단계 경로를 위한 ID 변수들 선언
     private var userId: String? = null     // 유저 ID
     private var folderId: String? = null   // 폴더 ID (기존 contentId 역할)
     private var topicId: String? = null    // 주제 ID
@@ -43,12 +43,13 @@ class AnalysisProgressActivity : AppCompatActivity() {
 
         db = FirebaseFirestore.getInstance()
 
-        // ⭐️ [수정 2] Intent로 넘어온 ID들 받기
+        // 2 Intent로 넘어온 ID들 받기
         jobId = intent.getStringExtra("jobId")
         userId = intent.getStringExtra("userId")       // UploadActivity에서 넘겨준 userId
         folderId = intent.getStringExtra("contentId")  // Folder ID
         topicId = intent.getStringExtra("topicId")     // Topic ID
 
+        // 필수 정보가 다 있는지 확인
         if (jobId != null && userId != null && folderId != null && topicId != null) {
             // 1초 뒤부터 폴링 시작
             handler.postDelayed(pollingRunnable, 1000)
@@ -101,7 +102,7 @@ class AnalysisProgressActivity : AppCompatActivity() {
         binding.tvLoadingMessage.text = data.message ?: "분석 중..."
     }
 
-    // ⭐️ [핵심 수정 3] 파이어베이스 저장 경로 변경 (4단계 구조)
+    // 3 파이어베이스 저장 경로 변경 (4단계 구조)
     private fun saveAnalysisResultToFirestore(resultData: AnalysisResultData?) {
         if (resultData == null) {
             showError("결과 데이터가 비어있습니다.")
@@ -194,7 +195,7 @@ class AnalysisProgressActivity : AppCompatActivity() {
     private fun navigateToResultActivity(presentationId: String) {
         val intent = Intent(this, AnalysisResultActivity::class.java)
 
-        // ⭐️ [수정 4] 결과 화면에서도 경로를 알 수 있게 ID들 전달
+        // 4 결과 화면에서도 경로를 알 수 있게 ID들 전달
         intent.putExtra("userId", userId)
         intent.putExtra("contentId", folderId)
         intent.putExtra("topicId", topicId)
