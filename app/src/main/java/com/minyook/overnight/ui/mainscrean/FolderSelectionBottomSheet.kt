@@ -2,110 +2,141 @@ package com.minyook.overnight.ui.mainscrean
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.minyook.overnight.R
 
 class FolderSelectionBottomSheet : BottomSheetDialogFragment() {
 
-    // 1. 인터페이스 수정 (ID와 이름을 둘 다 전달하도록 변경)
+    private var listener: OnFolderSelectedListener? = null
+    private var userUid: String? = null
+    private lateinit var db: FirebaseFirestore
+
+    companion object {
+        const val TAG = "FolderSelectionBottomSheet"
+        private const val ARG_UID = "user_uid"
+
+        fun newInstance(uid: String): FolderSelectionBottomSheet {
+            val fragment = FolderSelectionBottomSheet()
+            val args = Bundle()
+            args.putString(ARG_UID, uid)
+            fragment.arguments = args
+            return fragment
+        }
+    }
+
     interface OnFolderSelectedListener {
         fun onFolderSelected(folderId: String, folderName: String)
     }
 
-    private var listener: OnFolderSelectedListener? = null
-    private val folderList = mutableListOf<FolderData>() // 실제 데이터를 담을 리스트
-
-    // 간단한 데이터 클래스 (내부 사용용)
-    data class FolderData(val id: String, val name: String)
-
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        listener = context as? OnFolderSelectedListener
+        if (context is OnFolderSelectedListener) {
+            listener = context
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        userUid = arguments?.getString(ARG_UID)
+        db = FirebaseFirestore.getInstance()
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.bottom_sheet_folder_selection, container, false)
+        return inflater.inflate(R.layout.layout_folder_bottom_sheet, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val recyclerView: RecyclerView = view.findViewById(R.id.recycler_folder_list)
+        val recyclerView = view.findViewById<RecyclerView>(R.id.recycler_folder_selection)
+        recyclerView.layoutManager = LinearLayoutManager(context)
 
-        // 2. Firestore에서 실제 폴더 목록 가져오기
-        fetchFoldersFromFirestore(recyclerView)
+        if (userUid != null) {
+            fetchFolders(recyclerView)
+        } else {
+            Toast.makeText(context, "유저 정보를 불러올 수 없습니다.", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    private fun fetchFoldersFromFirestore(recyclerView: RecyclerView) {
-        val db = FirebaseFirestore.getInstance()
-        val user = FirebaseAuth.getInstance().currentUser
+    private fun fetchFolders(recyclerView: RecyclerView) {
+        Log.d(TAG, "데이터 로드 시작 - UID: $userUid")
 
-        if (user == null) {
-            Toast.makeText(context, "로그인이 필요합니다.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // 'contents' 컬렉션에서 내(userId)가 만든 폴더 중 삭제되지 않은(isDeleted == false) 것만 조회
-        db.collection("contents")
-            .whereEqualTo("userId", user.uid)
-            .whereEqualTo("isDeleted", false)
+        // 1. 'folders' 컬렉션까지 접근
+        // 경로: user -> {userUID} -> folders
+        db.collection("user").document(userUid!!).collection("folders")
+            .orderBy("created_at")
             .get()
             .addOnSuccessListener { documents ->
-                folderList.clear()
-                for (doc in documents) {
-                    val name = doc.getString("contentName") ?: "이름 없음"
-                    val id = doc.id // 문서 ID
-                    folderList.add(FolderData(id, name))
-                }
+                if (documents.isEmpty) {
+                    Toast.makeText(context, "생성된 폴더가 없습니다.", Toast.LENGTH_SHORT).show()
+                } else {
+                    val folders = mutableListOf<Pair<String, String>>()
 
-                // 어댑터 연결
-                recyclerView.adapter = FolderPathAdapter(folderList) { selectedFolder ->
-                    // 선택 시 ID와 이름을 리스너로 전달
-                    listener?.onFolderSelected(selectedFolder.id, selectedFolder.name)
-                    dismiss()
+                    // 2. folders 컬렉션 안의 모든 문서(foldersUID)를 하나씩 꺼냄
+                    for (doc in documents) {
+                        val name = doc.getString("name") ?: "이름 없음"
+
+                        // ★ 여기가 바로 foldersUID 입니다!
+                        // doc.id는 문서의 이름(ID)을 의미합니다.
+                        val foldersUID = doc.id
+
+                        // 삭제되지 않은 폴더만 리스트에 추가
+                        val isDeleted = doc.getBoolean("isDeleted") ?: false
+                        if (!isDeleted) {
+                            folders.add(Pair(foldersUID, name))
+                        }
+                    }
+
+                    // 어댑터 연결
+                    recyclerView.adapter = FolderSelectionAdapter(folders) { id, name ->
+                        // 클릭 시 부모 액티비티(PresentationInfoActivity)로 foldersUID와 이름을 전달
+                        listener?.onFolderSelected(id, name)
+                        dismiss()
+                    }
                 }
             }
             .addOnFailureListener { e ->
-                Toast.makeText(context, "폴더 목록을 불러오지 못했습니다: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "데이터 로드 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "Firestore Error", e)
             }
     }
 
-    // --- 내부 Adapter ---
-    private inner class FolderPathAdapter(
-        private val folders: List<FolderData>,
-        private val onClick: (FolderData) -> Unit
-    ) : RecyclerView.Adapter<FolderPathAdapter.PathViewHolder>() {
+    // 리스트 아이템 어댑터
+    class FolderSelectionAdapter(
+        private val folders: List<Pair<String, String>>,
+        private val onClick: (String, String) -> Unit
+    ) : RecyclerView.Adapter<FolderSelectionAdapter.ViewHolder>() {
 
-        inner class PathViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val pathTextView: TextView = view.findViewById(android.R.id.text1)
+        class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            // 아까 만든 item_folder_selection.xml의 TextView ID
+            val textView: TextView = view.findViewById(R.id.tv_folder_name)
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PathViewHolder {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            // 커스텀 아이템 레이아웃 연결
             val view = LayoutInflater.from(parent.context)
-                .inflate(android.R.layout.simple_list_item_1, parent, false)
-            return PathViewHolder(view)
+                .inflate(R.layout.item_folder_selection, parent, false)
+            return ViewHolder(view)
         }
 
-        override fun onBindViewHolder(holder: PathViewHolder, position: Int) {
-            val folder = folders[position]
-            holder.pathTextView.text = folder.name // 화면엔 이름만 표시
-            holder.itemView.setOnClickListener { onClick(folder) }
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val (id, name) = folders[position]
+            holder.textView.text = name
+            holder.itemView.setOnClickListener { onClick(id, name) }
         }
 
         override fun getItemCount() = folders.size
-    }
-
-    companion object {
-        const val TAG = "FolderSelectionBottomSheet"
     }
 }

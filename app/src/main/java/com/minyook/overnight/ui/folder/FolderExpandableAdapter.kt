@@ -18,7 +18,7 @@ class FolderExpandableAdapter(
     // [콜백] 동적 추가 버튼
     private val onAddClicked: (groupName: String) -> Unit,
     // [콜백] 하위 항목 클릭
-    private val onChildClicked: (childName: String) -> Unit,
+    private val onChildClicked: (child: FolderItem.Child) -> Unit,
     // [콜백] 휴지통 클릭
     private val onTrashClicked: () -> Unit,
     // [콜백] 하위 폴더 옵션 버튼 클릭
@@ -175,7 +175,7 @@ class FolderExpandableAdapter(
 
             // 1. 하위 항목 클릭 시 이동
             itemView.setOnClickListener {
-                onChildClicked(child.name)
+                onChildClicked(child)
             }
 
             // 2. 옵션 버튼 클릭 시 BottomSheet 띄우기 요청

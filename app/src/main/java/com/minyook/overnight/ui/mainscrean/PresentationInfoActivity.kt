@@ -4,11 +4,14 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.Button
-import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.google.android.material.textfield.TextInputEditText
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.minyook.overnight.R
 import com.minyook.overnight.ui.file.UploadActivity
@@ -17,42 +20,59 @@ class PresentationInfoActivity : AppCompatActivity(),
     FolderSelectionBottomSheet.OnFolderSelectedListener {
 
     private lateinit var itemsContainer: LinearLayout
-    private lateinit var addItemButton: Button // (XML ID: addItemButton / MaterialButton)
-    private lateinit var startButton: Button   // (XML ID: startButton / AppCompatButton)
+    private lateinit var addItemButton: Button
+    private lateinit var startButton: Button
     private lateinit var folderPathEditText: TextInputEditText
     private lateinit var etTeamInfo: TextInputEditText
     private lateinit var etTopicName: TextInputEditText
 
     private var itemCounter = 0
 
-    // Firestore 관련 변수
+    // Firebase 관련
     private lateinit var db: FirebaseFirestore
-    private var selectedFolderId: String? = null // 선택된 폴더의 문서 ID
+    private lateinit var auth: FirebaseAuth // ★ 인증 객체 추가
+
+    private var selectedFolderId: String? = null
+    private var currentUserUid: String? = null // ★ UID 변수
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_presentation_info)
 
-        // 1. Firestore 초기화
+        // 내비게이션 바 숨김
+        hideSystemUI()
+
+        // 1. Firebase 초기화
         db = FirebaseFirestore.getInstance()
+        auth = FirebaseAuth.getInstance()
+
+        // ★ 현재 로그인한 사용자 UID 가져오기
+        currentUserUid = auth.currentUser?.uid
+        if (currentUserUid == null) {
+            Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
 
         // 2. 뷰 바인딩
         itemsContainer = findViewById(R.id.itemsContainer)
         addItemButton = findViewById(R.id.addItemButton)
         startButton = findViewById(R.id.startButton)
         folderPathEditText = findViewById(R.id.edittext_folder_path)
-
-        // 팀 정보, 주제 입력창 바인딩 (XML ID 확인 필요: activity_presentation_info.xml 기준)
         etTeamInfo = findViewById(R.id.edittext_team_info)
         etTopicName = findViewById(R.id.edittext_topic_info)
 
-        // 3. 폴더 선택 팝업
+        val btnBack = findViewById<android.widget.ImageButton>(R.id.btn_back)
+        btnBack.setOnClickListener { finish() }
+
+        // 3. 폴더 선택 팝업 (UID 전달)
         folderPathEditText.setOnClickListener {
-            val bottomSheet = FolderSelectionBottomSheet()
+            // 내 UID를 넘겨서 내 폴더만 가져오게 함
+            val bottomSheet = FolderSelectionBottomSheet.newInstance(currentUserUid!!)
             bottomSheet.show(supportFragmentManager, FolderSelectionBottomSheet.TAG)
         }
 
-        // 4. 기준 항목 추가 버튼
+        // 4. 항목 추가 버튼
         addItemButton.setOnClickListener {
             if (itemsContainer.childCount < 5) {
                 addNewItemCard()
@@ -61,7 +81,7 @@ class PresentationInfoActivity : AppCompatActivity(),
             }
         }
 
-        // 5. 저장 및 시작 버튼 -> Firestore 저장 로직 호출
+        // 5. 저장 버튼
         startButton.setOnClickListener {
             saveTopicToFirestore()
         }
@@ -70,21 +90,24 @@ class PresentationInfoActivity : AppCompatActivity(),
         addNewItemCard()
     }
 
-    /**
-     * 채점 기준 항목(Card)을 UI에 동적으로 추가
-     */
+    override fun onResume() {
+        super.onResume()
+        hideSystemUI()
+    }
+
+    private fun hideSystemUI() {
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        windowInsetsController.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+    }
+
     private fun addNewItemCard() {
         itemCounter++
-
         val inflater = LayoutInflater.from(this)
-        val itemCardView = inflater.inflate(
-            R.layout.item_criterion, // 보내주신 item_criterion.xml 사용
-            itemsContainer,
-            false
-        )
-
+        val itemCardView = inflater.inflate(R.layout.item_criterion, itemsContainer, false)
         val itemNameEditText: TextInputEditText = itemCardView.findViewById(R.id.edittext_item_name)
-        val deleteButton: ImageButton = itemCardView.findViewById(R.id.button_delete_item)
+        val deleteButton: android.widget.ImageButton = itemCardView.findViewById(R.id.button_delete_item)
 
         itemNameEditText.setText("평가 항목 $itemCounter")
 
@@ -92,23 +115,17 @@ class PresentationInfoActivity : AppCompatActivity(),
             itemsContainer.removeView(itemCardView)
             itemCounter--
         }
-
         itemsContainer.addView(itemCardView)
     }
 
-    /**
-     * FolderSelectionBottomSheet에서 폴더 선택 시 호출 (인터페이스 수정됨)
-     */
+    // 폴더 선택 완료 시 호출
     override fun onFolderSelected(folderId: String, folderName: String) {
         selectedFolderId = folderId
-        folderPathEditText.setText(folderName) // 화면엔 이름만 표시
+        folderPathEditText.setText(folderName)
     }
 
-    /**
-     * 입력된 모든 정보를 Firestore 'topics' 컬렉션에 저장
-     */
+    // ★ [핵심] Firestore 저장 로직 수정
     private fun saveTopicToFirestore() {
-        // 1. 유효성 검사: 폴더 선택 여부
         if (selectedFolderId == null) {
             Toast.makeText(this, "폴더(과목)를 먼저 선택해주세요.", Toast.LENGTH_SHORT).show()
             return
@@ -122,7 +139,6 @@ class PresentationInfoActivity : AppCompatActivity(),
             return
         }
 
-        // 2. 채점 기준 리스트 수집
         val standardsList = mutableListOf<HashMap<String, Any>>()
         var totalScore = 0
 
@@ -144,8 +160,7 @@ class PresentationInfoActivity : AppCompatActivity(),
             val score = scoreStr.toIntOrNull() ?: 0
             totalScore += score
 
-            // Standard 데이터 구조 생성
-            val standardMap = hashMapOf <String, Any> (
+            val standardMap = hashMapOf<String, Any>(
                 "standardName" to name,
                 "standardDetail" to detail,
                 "standardScore" to score
@@ -158,32 +173,34 @@ class PresentationInfoActivity : AppCompatActivity(),
             return
         }
 
-        // 3. 저장할 Topic 데이터 생성
-        // 경로: contents/{contentId}/topics/{topicId}
+        // 저장할 데이터
         val topicData = hashMapOf(
-            "contentId" to selectedFolderId,
+            "folderId" to selectedFolderId,
             "topicName" to topicName,
             "teamInfo" to teamInfo,
             "standards" to standardsList,
             "createdAt" to com.google.firebase.Timestamp.now()
         )
 
-        startButton.isEnabled = false // 중복 클릭 방지
+        startButton.isEnabled = false
 
-        // 4. Firestore 저장
-        db.collection("contents").document(selectedFolderId!!)
-            .collection("topics")
+        // ★ [경로 수정] user -> {UID} -> folders -> {FolderID} -> topics -> {NewID}
+        // 사진에 있는 경로 구조를 정확히 따릅니다.
+        db.collection("user").document(currentUserUid!!)
+            .collection("folders").document(selectedFolderId!!)
+            .collection("topics") // 하위에 topics 컬렉션을 만들어 저장
             .add(topicData)
             .addOnSuccessListener { documentReference ->
                 val newTopicId = documentReference.id
                 Toast.makeText(this, "발표 주제가 저장되었습니다.", Toast.LENGTH_SHORT).show()
 
-                // 5. 다음 화면(UploadActivity)으로 이동하면서 ID 전달
+                // 다음 화면으로 데이터 전달 (경로가 바뀌었으므로 userId도 함께 전달)
                 val intent = Intent(this, UploadActivity::class.java)
-                intent.putExtra("contentId", selectedFolderId)
-                intent.putExtra("topicId", newTopicId) // ⭐ 방금 만든 주제 ID 전달
+                intent.putExtra("userId", currentUserUid)
+                intent.putExtra("folderId", selectedFolderId)
+                intent.putExtra("topicId", newTopicId)
                 startActivity(intent)
-                finish() // 뒤로가기 시 다시 입력창 안 나오게
+                finish()
             }
             .addOnFailureListener { e ->
                 startButton.isEnabled = true

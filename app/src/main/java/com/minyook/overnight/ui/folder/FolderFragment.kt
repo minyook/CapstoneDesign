@@ -1,296 +1,298 @@
 package com.minyook.overnight.ui.folder
 
-import android.content.Context
 import android.content.Intent
-import android.graphics.drawable.BitmapDrawable
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.bottomsheet.BottomSheetDialog // ★ 바텀 시트 임포트
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
 import com.minyook.overnight.R
+import com.minyook.overnight.databinding.DialogAddChildBinding
+import com.minyook.overnight.databinding.FragmentFolderBinding
+import com.minyook.overnight.ui.file.SubjectFolderActivity
 import com.minyook.overnight.ui.mainscrean.PresentationInfoActivity
-import java.util.ArrayList
+import com.minyook.overnight.ui.folder.ChildNotesFragment
 
-class FolderFragment : Fragment(), AddChildDialogFragment.ChildCreationListener,
-    FolderOptionsBottomSheet.FolderOptionListener, RenameFolderDialogFragment.RenameListener {
+class FolderFragment : Fragment() {
 
+    private var _binding: FragmentFolderBinding? = null
+    private val binding get() = _binding!!
+
+    // Firebase
+    private val auth = FirebaseAuth.getInstance()
+    private val db = FirebaseFirestore.getInstance()
+
+    // 어댑터 및 데이터
     private lateinit var folderAdapter: FolderExpandableAdapter
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var fabAddFolder: FloatingActionButton
+    private var groups = mutableListOf<FolderItem.Group>()
 
-    // Firebase 관련 변수
-    private lateinit var db: FirebaseFirestore
-    private lateinit var auth: FirebaseAuth
-    private var firestoreListener: ListenerRegistration? = null
-
-    // 데이터 리스트
-    private var folderGroupsData: MutableList<FolderItem.Group> = mutableListOf()
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_folder, container, false)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentFolderBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 1. Firebase 초기화
-        db = FirebaseFirestore.getInstance()
-        auth = FirebaseAuth.getInstance()
+        hideSystemUI()
+        initGroupData()
+        setupRecyclerView()
+        fetchFolders()
+        setupListeners()
+    }
 
-        // 2. 뷰 바인딩
-        recyclerView = view.findViewById(R.id.recycler_folder_list)
-        fabAddFolder = view.findViewById(R.id.fab_add_folder)
+    override fun onResume() {
+        super.onResume()
+        hideSystemUI()
+    }
 
-        // 3. 어댑터 초기화 (빈 리스트로 시작)
+    // --- [1] 초기 데이터 구조 ---
+    private fun initGroupData() {
+        groups.clear()
+        groups.add(FolderItem.Group(name = "전체 노트", isExpanded = true, children = mutableListOf()))
+        groups.add(FolderItem.Group(name = "휴지통", children = mutableListOf()))
+    }
+
+    // --- [2] 리사이클러뷰 설정 ---
+    private fun setupRecyclerView() {
         folderAdapter = FolderExpandableAdapter(
-            data = folderGroupsData,
-            onAddClicked = ::showAddChildDialog,
-            onChildClicked = ::navigateToChildNotes,
-            onTrashClicked = ::navigateToTrashList,
-            onChildOptionsClicked = ::showChildOptionsBottomSheet
+            data = groups,
+            onAddClicked = { groupName ->
+                showAddFolderDialog()
+            },
+            onChildClicked = { child ->
+                // ⭐️ 여기가 핵심! 클릭된 폴더의 ID와 이름을 가지고 이동합니다.
+                val intent = Intent(requireContext(), SubjectFolderActivity::class.java)
+                intent.putExtra("folderId", child.id)     // 폴더 ID
+                intent.putExtra("folderName", child.name) // 폴더 이름
+                startActivity(intent)
+            },
+            onTrashClicked = {
+                // 휴지통 클릭 -> TrashNotesFragment 이동
+                parentFragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container, TrashNotesFragment.newInstance())
+                    .addToBackStack(null)
+                    .commit()
+            },
+            onChildOptionsClicked = { view, childName ->
+                // ★ [수정됨] 옵션 클릭 -> 바텀 시트 호출
+                showChildOptionsBottomSheet(childName)
+            }
         )
 
-        recyclerView.layoutManager = LinearLayoutManager(context)
-        recyclerView.adapter = folderAdapter
-
-        // 4. 하단 FAB 리스너 (팝업)
-        fabAddFolder.setOnClickListener { anchorView ->
-            showAddOptionsPopup(anchorView)
+        binding.recyclerFolderList.apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = folderAdapter
+            itemAnimator = null
         }
-
-        // 5. Firestore 데이터 리스너 연결
-        setupFirestoreListener()
     }
 
-    /**
-     * Firestore의 'contents' 컬렉션을 실시간으로 구독합니다.
-     */
-    private fun setupFirestoreListener() {
-        val user = auth.currentUser
-        if (user == null) return
+    // --- [3] 하위 항목 옵션 메뉴 (Bottom Sheet 적용) ---
+    private fun showChildOptionsBottomSheet(childName: String) {
+        // 1. 대상 데이터 찾기
+        val allNotesGroup = groups.find { it.name == "전체 노트" } ?: return
+        val targetChild = allNotesGroup.children.find { it.name == childName } ?: return
 
-        // 쿼리: 내(userId)가 만든 contents만 가져오기
-        val query = db.collection("contents")
-            .whereEqualTo("userId", user.uid)
-        // .orderBy("createdAt") // 필요 시 주석 해제 (인덱스 설정 필요할 수 있음)
+        // 2. BottomSheetDialog 생성
+        val bottomSheetDialog = BottomSheetDialog(requireContext())
+        // dialog_folder_options.xml 레이아웃 인플레이트
+        val sheetView = layoutInflater.inflate(R.layout.dialog_folder_options, null)
+        bottomSheetDialog.setContentView(sheetView)
 
-        firestoreListener = query.addSnapshotListener { snapshots, e ->
-            if (e != null) {
-                Log.w("FolderFragment", "Listen failed.", e)
-                return@addSnapshotListener
+        // 3. 배경 투명 처리 (XML의 둥근 모서리가 보이도록 설정)
+        try {
+            val parentLayout = sheetView.parent as View
+            parentLayout.setBackgroundColor(Color.TRANSPARENT)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // 4. 버튼 클릭 리스너 설정
+        // [이름 변경] 클릭
+        sheetView.findViewById<View>(R.id.option_rename).setOnClickListener {
+            bottomSheetDialog.dismiss() // 시트 닫기
+            showEditDialog(targetChild) // 이름 변경 다이얼로그 호출
+        }
+
+        // [삭제] 클릭
+        sheetView.findViewById<View>(R.id.option_delete).setOnClickListener {
+            bottomSheetDialog.dismiss() // 시트 닫기
+            deleteChildFolder(targetChild) // 삭제 로직 실행
+        }
+
+        // 5. 표시
+        bottomSheetDialog.show()
+    }
+
+    // --- [4] 폴더 이름 수정 다이얼로그 ---
+    private fun showEditDialog(child: FolderItem.Child) {
+        val dialogBinding = DialogAddChildBinding.inflate(layoutInflater)
+        val builder = AlertDialog.Builder(requireContext())
+        builder.setView(dialogBinding.root)
+        val dialog = builder.create()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        dialogBinding.etNewChildName.setText(child.name)
+        dialogBinding.btnCreate.text = "수정"
+
+        dialogBinding.btnCancel.setOnClickListener { dialog.dismiss() }
+        dialogBinding.btnCreate.setOnClickListener {
+            val newName = dialogBinding.etNewChildName.text.toString().trim()
+            if (newName.isNotEmpty()) {
+                updateChildFolder(child, newName)
+                dialog.dismiss()
+            } else {
+                Toast.makeText(requireContext(), "이름을 입력해주세요.", Toast.LENGTH_SHORT).show()
             }
+        }
+        dialog.show()
+    }
 
-            if (snapshots != null) {
-                val activeChildren = mutableListOf<FolderItem.Child>()
-                val trashChildren = mutableListOf<FolderItem.Child>()
+    // --- [5] Firestore 로직 ---
+    private fun updateChildFolder(child: FolderItem.Child, newName: String) {
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("user").document(uid).collection("folders").document(child.id)
+            .update("name", newName)
+            .addOnSuccessListener {
+                Toast.makeText(requireContext(), "수정되었습니다.", Toast.LENGTH_SHORT).show()
+                fetchFolders()
+            }
+    }
 
-                // 문서를 하나씩 꺼내서 객체로 변환
-                for (doc in snapshots) {
-                    val contentName = doc.getString("contentName") ?: "이름 없음"
-                    val isDeleted = doc.getBoolean("isDeleted") ?: false
-                    val docId = doc.id // Firestore 문서 ID
+    private fun deleteChildFolder(child: FolderItem.Child) {
+        val uid = auth.currentUser?.uid ?: return
+        // 휴지통 이동 (isDeleted = true)
+        db.collection("user").document(uid).collection("folders").document(child.id)
+            .update("isDeleted", true)
+            .addOnSuccessListener {
+                Toast.makeText(requireContext(), "휴지통으로 이동했습니다.", Toast.LENGTH_SHORT).show()
+                fetchFolders()
+            }
+    }
 
-                    // FolderItem.Child 생성 (id에 Firestore 문서 ID 저장)
-                    val childItem = FolderItem.Child(
-                        parentId = "G1", // 부모 그룹 ID (임의 고정)
-                        id = docId,      // ⭐ 중요: 나중에 이 ID로 수정/삭제함
-                        name = contentName,
-                        isDeleted = isDeleted
-                    )
+    private fun fetchFolders() {
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("user").document(uid).collection("folders")
+            .orderBy("created_at")
+            .get()
+            .addOnSuccessListener { documents ->
+                val allNotesGroup = groups.find { it.name == "전체 노트" }
+                if (allNotesGroup != null) {
+                    allNotesGroup.children.clear()
+                    for (document in documents) {
+                        val name = document.getString("name") ?: "이름 없음"
+                        val id = document.id
+                        val isDeleted = document.getBoolean("isDeleted") ?: false
 
-                    if (isDeleted) {
-                        trashChildren.add(childItem)
-                    } else {
-                        activeChildren.add(childItem)
+                        if (!isDeleted) {
+                            val child = FolderItem.Child(allNotesGroup.id, id, name, false)
+                            allNotesGroup.children.add(child)
+                        }
                     }
+                    folderAdapter.notifyDataChanged()
                 }
-
-                updateLocalData(activeChildren, trashChildren)
             }
+    }
+
+    private fun createNewFolder(folderName: String) {
+        val uid = auth.currentUser?.uid ?: return
+        val folderData = hashMapOf(
+            "name" to folderName,
+            "created_at" to System.currentTimeMillis(),
+            "isDeleted" to false
+        )
+        db.collection("user").document(uid).collection("folders")
+            .add(folderData)
+            .addOnSuccessListener {
+                Toast.makeText(requireContext(), "폴더 생성 완료", Toast.LENGTH_SHORT).show()
+                fetchFolders()
+            }
+    }
+
+    // --- [6] FAB & 팝업 ---
+    private fun setupListeners() {
+        binding.fabAddFolder.setOnClickListener { view ->
+            showAddOptionsMenu(view)
         }
     }
 
-    /**
-     * Firestore에서 받은 데이터를 로컬 리스트 구조에 맞춰 재배치하고 UI 갱신
-     */
-    private fun updateLocalData(active: MutableList<FolderItem.Child>, trash: MutableList<FolderItem.Child>) {
-        folderGroupsData.clear()
+    private fun showAddOptionsMenu(anchorView: View) {
+        val inflater = LayoutInflater.from(requireContext())
+        val popupView = inflater.inflate(R.layout.popup_add_options, null)
 
-        // 1. 전체 노트 그룹
-        val allNotesGroup = FolderItem.Group(
-            id = "G1",
-            name = "전체 노트",
-            isExpanded = true, // 기본 펼침
-            children = active
+        val popupWindow = PopupWindow(
+            popupView,
+            LayoutParams.WRAP_CONTENT,
+            LayoutParams.WRAP_CONTENT,
+            true
         )
+        popupWindow.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        popupWindow.elevation = 20f
 
-        // 2. 휴지통 그룹
-        val trashGroup = FolderItem.Group(
-            id = "G4",
-            name = "휴지통",
-            children = trash
-        )
+        popupView.findViewById<View>(R.id.btn_upload_file).setOnClickListener {
+            popupWindow.dismiss()
+            val intent = Intent(requireContext(), PresentationInfoActivity::class.java)
+            startActivity(intent)
+        }
+        popupView.findViewById<View>(R.id.btn_add_folder_popup).setOnClickListener {
+            popupWindow.dismiss()
+            showAddFolderDialog()
+        }
 
-        folderGroupsData.add(allNotesGroup)
-        folderGroupsData.add(trashGroup)
+        popupView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+        val xOff = -(popupView.measuredWidth - anchorView.width)
+        val yOff = -(popupView.measuredHeight + anchorView.height + 30)
+        popupWindow.showAsDropDown(anchorView, xOff, yOff)
+    }
 
-        // 어댑터에 변경 알림
-        folderAdapter.notifyDataChanged()
+    private fun showAddFolderDialog() {
+        val dialogBinding = DialogAddChildBinding.inflate(layoutInflater)
+        val builder = AlertDialog.Builder(requireContext())
+        builder.setView(dialogBinding.root)
+        val dialog = builder.create()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        dialogBinding.btnCancel.setOnClickListener { dialog.dismiss() }
+        dialogBinding.btnCreate.setOnClickListener {
+            val folderName = dialogBinding.etNewChildName.text.toString().trim()
+            if (folderName.isNotEmpty()) {
+                createNewFolder(folderName)
+                dialog.dismiss()
+            } else {
+                Toast.makeText(requireContext(), "폴더 이름을 입력해주세요.", Toast.LENGTH_SHORT).show()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun hideSystemUI() {
+        val window = requireActivity().window
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        windowInsetsController.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // 리스너 해제 (메모리 누수 방지)
-        firestoreListener?.remove()
-    }
-
-    // -----------------------------------
-    // 기능 구현 (Firestore 연동)
-    // -----------------------------------
-
-    // 1. 폴더 추가 (Firestore에 add)
-    override fun onChildCreated(groupName: String, childName: String) {
-        val user = auth.currentUser ?: return
-
-        // Firestore 'contents' 컬렉션 구조에 맞게 데이터 생성
-        val newContent = hashMapOf(
-            "userId" to user.uid,
-            "contentName" to childName,
-            "totalTopics" to 0,
-            "totalPresentations" to 0,
-            "isDeleted" to false
-            // "createdAt" to com.google.firebase.Timestamp.now() // 필요하면 추가
-        )
-
-        db.collection("contents")
-            .add(newContent)
-            .addOnSuccessListener {
-                Toast.makeText(context, "'$childName' 폴더 생성 완료", Toast.LENGTH_SHORT).show()
-                // 리스너가 자동으로 UI 업데이트하므로 여기서 adapter.notify 할 필요 없음
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(context, "폴더 생성 실패: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-    }
-
-    // 2. 폴더 삭제 (휴지통으로 이동 -> isDeleted = true)
-    override fun onFolderDeleted(folderTitle: String) {
-        // 이름으로 ID를 찾아야 함 (Firestore ID가 필요하므로)
-        val targetChild = findChildByName(folderTitle)
-
-        if (targetChild != null) {
-            db.collection("contents").document(targetChild.id)
-                .update("isDeleted", true)
-                .addOnSuccessListener {
-                    Toast.makeText(context, "휴지통으로 이동했습니다.", Toast.LENGTH_SHORT).show()
-                }
-        }
-    }
-
-    // 3. 폴더 이름 변경
-    override fun onFolderRenamed(oldTitle: String, newTitle: String) {
-        val targetChild = findChildByName(oldTitle)
-
-        if (targetChild != null) {
-            db.collection("contents").document(targetChild.id)
-                .update("contentName", newTitle)
-                .addOnSuccessListener {
-                    Toast.makeText(context, "이름이 변경되었습니다.", Toast.LENGTH_SHORT).show()
-                }
-        }
-    }
-
-    // 헬퍼 함수: 이름으로 Child 객체 찾기 (ID를 알아내기 위함)
-    private fun findChildByName(name: String): FolderItem.Child? {
-        folderGroupsData.forEach { group ->
-            val child = group.children.find { it.name == name }
-            if (child != null) return child
-        }
-        return null
-    }
-
-    // -----------------------------------
-    // 기존 UI 로직 유지
-    // -----------------------------------
-
-    // '전체 노트' 옆의 + 버튼 클릭 시
-    private fun showAddChildDialog(groupName: String) {
-        val dialog = AddChildDialogFragment.newInstance(groupName)
-        dialog.setTargetFragment(this, 0)
-        dialog.show(parentFragmentManager, "AddChildDialog")
-    }
-
-    // 자식 항목 클릭 시 이동
-    private fun navigateToChildNotes(folderTitle: String) {
-        val fragment = ChildNotesFragment.newInstance(folderTitle)
-
-        val containerId = (view?.parent as? ViewGroup)?.id ?: R.id.fragment_container
-        requireActivity().supportFragmentManager.beginTransaction()
-            .replace(containerId, fragment)
-            .addToBackStack(null)
-            .commit()
-    }
-
-    // 휴지통 클릭 시 이동
-    private fun navigateToTrashList() {
-        val dataToSend = ArrayList(folderGroupsData)
-        val fragment = TrashNotesFragment.newInstance(dataToSend)
-        val containerId = (view?.parent as? ViewGroup)?.id ?: R.id.fragment_container
-
-        requireActivity().supportFragmentManager.beginTransaction()
-            .replace(containerId, fragment)
-            .addToBackStack(null)
-            .commit()
-    }
-
-    // 자식 항목 옵션(점 세개) 클릭 시
-    private fun showChildOptionsBottomSheet(anchorView: View, folderTitle: String) {
-        val bottomSheet = FolderOptionsBottomSheet.newInstance(folderTitle)
-        bottomSheet.setTargetFragment(this, 0)
-        bottomSheet.show(parentFragmentManager, "ChildOptions")
-    }
-
-    // FolderOptionsBottomSheet에서 이름 변경 선택 시
-    override fun onFolderRenamed(folderTitle: String) {
-        val dialog = RenameFolderDialogFragment.newInstance(folderTitle)
-        dialog.setTargetFragment(this, 0)
-        dialog.show(parentFragmentManager, "RenameDialog")
-    }
-
-    // 우측 하단 FAB 팝업
-    private fun showAddOptionsPopup(anchorView: View) {
-        val inflater = requireContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        val popupView = inflater.inflate(R.layout.popup_add_options, null)
-        val popupWindow = PopupWindow(popupView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true)
-
-        popupWindow.setBackgroundDrawable(BitmapDrawable())
-        popupWindow.isOutsideTouchable = true
-
-        popupView.findViewById<LinearLayout>(R.id.option_record).setOnClickListener {
-            Toast.makeText(requireContext(), "녹화 기능 실행 (구현 필요)", Toast.LENGTH_SHORT).show()
-            popupWindow.dismiss()
-        }
-
-        popupView.findViewById<LinearLayout>(R.id.option_file_upload).setOnClickListener {
-            // PresentationInfoActivity로 이동 (패키지명 주의)
-            val intent = Intent(requireContext(), PresentationInfoActivity::class.java)
-            startActivity(intent)
-            popupWindow.dismiss()
-        }
-
-        popupView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
-        val yOffset = - (anchorView.height + popupView.measuredHeight + 16)
-        popupWindow.showAsDropDown(anchorView, 0, yOffset)
+        _binding = null
     }
 }

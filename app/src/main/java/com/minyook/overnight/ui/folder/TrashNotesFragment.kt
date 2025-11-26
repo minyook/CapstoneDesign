@@ -1,122 +1,217 @@
-// ui.folder/TrashNotesFragment.kt
-
 package com.minyook.overnight.ui.folder
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.ImageView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.firebase.firestore.FirebaseFirestore // 1. Firestore 임포트
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.minyook.overnight.R
-import java.util.ArrayList
+import com.minyook.overnight.databinding.FragmentTrashNotesBinding
+// item_folder_child.xml을 사용하는 바인딩 (없으면 R.layout.item_folder_child 사용)
+import com.minyook.overnight.databinding.ItemFolderChildBinding
 
-class TrashNotesFragment : Fragment(), TrashOptionsBottomSheet.TrashOptionListener {
+class TrashNotesFragment : Fragment() {
 
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var emptyTextView: TextView
+    private var _binding: FragmentTrashNotesBinding? = null
+    private val binding get() = _binding!!
+
+    private val auth = FirebaseAuth.getInstance()
+    private val db = FirebaseFirestore.getInstance()
+
     private lateinit var trashAdapter: TrashAdapter
-    private var allFolderData: List<FolderItem.Group>? = null
-
-    // 2. Firestore 변수 선언
-    private lateinit var db: FirebaseFirestore
+    private val trashList = ArrayList<FolderItem.Child>()
 
     companion object {
-        private const val ARG_DATA = "folder_data"
-
-        fun newInstance(data: List<FolderItem.Group>): TrashNotesFragment {
-            return TrashNotesFragment().apply {
-                arguments = Bundle().apply {
-                    // FolderFragment에서 넘겨준 전체 데이터를 받습니다.
-                    putSerializable(ARG_DATA, ArrayList(data))
-                }
-            }
-        }
+        fun newInstance() = TrashNotesFragment()
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.getSerializable(ARG_DATA)?.let {
-            @Suppress("UNCHECKED_CAST")
-            allFolderData = it as List<FolderItem.Group>
-        }
-    }
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_trash_notes, container, false)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentTrashNotesBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 3. Firestore 초기화
-        db = FirebaseFirestore.getInstance()
+        setupToolbar()
+        setupRecyclerView()
+        fetchTrashItems()
+    }
 
-        // 뷰 초기화
-        recyclerView = view.findViewById(R.id.recycler_trash_list)
-        emptyTextView = view.findViewById(R.id.tv_trash_empty)
-
-        val toolbar = view.findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar_trash)
-        toolbar.setNavigationOnClickListener {
+    private fun setupToolbar() {
+        binding.toolbarTrash.setNavigationOnClickListener {
             requireActivity().supportFragmentManager.popBackStack()
         }
-
-        recyclerView.layoutManager = LinearLayoutManager(context)
-
-        displayTrashItems()
     }
 
-    private fun displayTrashItems() {
-        // 전체 데이터 중 isDeleted가 true인 항목만 필터링
-        val allChildren = allFolderData?.flatMap { it.children } ?: emptyList()
-        val trashedItems = allChildren.filter { it.isDeleted }.toMutableList()
+    // --- [1] 데이터 불러오기 (휴지통만) ---
+    private fun fetchTrashItems() {
+        val uid = auth.currentUser?.uid ?: return
 
-        if (trashedItems.isEmpty()) {
-            emptyTextView.visibility = View.VISIBLE
-            recyclerView.visibility = View.GONE
-        } else {
-            emptyTextView.visibility = View.GONE
-            recyclerView.visibility = View.VISIBLE
+        // Firestore에서 삭제된(isDeleted == true) 폴더만 가져오기
+        db.collection("user").document(uid).collection("folders")
+            .whereEqualTo("isDeleted", true)
+            .get()
+            .addOnSuccessListener { documents ->
+                trashList.clear()
+                for (document in documents) {
+                    val name = document.getString("name") ?: ""
+                    val id = document.id
 
-            trashAdapter = TrashAdapter(trashedItems) { folderTitle ->
-                val bottomSheet = TrashOptionsBottomSheet.newInstance(folderTitle)
-                bottomSheet.setTargetFragment(this, 0)
-                bottomSheet.show(parentFragmentManager, "TrashOptions")
+                    // 휴지통 아이템 객체 생성
+                    val item = FolderItem.Child(
+                        parentId = "trash",
+                        id = id,
+                        name = name,
+                        isDeleted = true
+                    )
+                    trashList.add(item)
+                }
+
+                // 목록 비었는지 체크
+                if (trashList.isEmpty()) {
+                    binding.tvTrashEmpty.visibility = View.VISIBLE
+                    binding.recyclerTrashList.visibility = View.GONE
+                } else {
+                    binding.tvTrashEmpty.visibility = View.GONE
+                    binding.recyclerTrashList.visibility = View.VISIBLE
+                    trashAdapter.notifyDataSetChanged()
+                }
             }
-            recyclerView.adapter = trashAdapter
-        }
+            .addOnFailureListener {
+                Toast.makeText(context, "데이터 로드 실패", Toast.LENGTH_SHORT).show()
+            }
     }
 
-    // 4. 복구 로직 수정 (DB 업데이트 추가)
-    override fun onRestore(folderTitle: String) {
-        // 1. 해당 폴더의 ID(Firestore Document ID)를 찾습니다.
-        val targetItem = allFolderData?.flatMap { it.children }?.find { it.name == folderTitle }
-
-        if (targetItem != null) {
-            // 2. Firestore에서 isDeleted를 false로 업데이트
-            db.collection("contents").document(targetItem.id)
-                .update("isDeleted", false)
-                .addOnSuccessListener {
-                    // 3. 성공 시 화면에서 제거 및 토스트 메시지
-                    trashAdapter.removeItem(folderTitle)
-
-                    // 목록이 비었는지 확인하여 "비었음" 텍스트 표시 처리
-                    if (trashAdapter.itemCount == 0) {
-                        emptyTextView.visibility = View.VISIBLE
-                        recyclerView.visibility = View.GONE
-                    }
-
-                    Toast.makeText(context, "'$folderTitle' 복구 완료", Toast.LENGTH_SHORT).show()
-                }
-                .addOnFailureListener { e ->
-                    Toast.makeText(context, "복구 실패: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-        } else {
-            Toast.makeText(context, "항목을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+    private fun setupRecyclerView() {
+        // 어댑터 생성 (클릭 시 바텀 시트 호출)
+        trashAdapter = TrashAdapter(trashList) { item ->
+            showTrashOptionsBottomSheet(item)
         }
+
+        binding.recyclerTrashList.layoutManager = LinearLayoutManager(context)
+        binding.recyclerTrashList.adapter = trashAdapter
+    }
+
+    // --- [2] 바텀 시트 옵션 메뉴 ---
+    private fun showTrashOptionsBottomSheet(item: FolderItem.Child) {
+        // 1. 바텀 시트 레이아웃 inflate
+        val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_trash_options, null)
+
+        // 2. 다이얼로그 생성
+        val bottomSheetDialog = BottomSheetDialog(requireContext())
+        bottomSheetDialog.setContentView(sheetView)
+
+        // 3. 배경 투명 처리 (XML의 둥근 모서리 적용을 위해 필수)
+        try {
+            val parentLayout = sheetView.parent as View
+            parentLayout.setBackgroundColor(Color.TRANSPARENT)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // --- 클릭 리스너 설정 ---
+
+        // [복구하기] 버튼
+        sheetView.findViewById<View>(R.id.option_restore).setOnClickListener {
+            bottomSheetDialog.dismiss()
+            restoreFolder(item)
+        }
+
+        // [영구 삭제] 버튼
+        sheetView.findViewById<View>(R.id.option_delete_permanently).setOnClickListener {
+            bottomSheetDialog.dismiss()
+            showDeleteConfirmDialog(item) // 확인 팝업 호출
+        }
+
+        bottomSheetDialog.show()
+    }
+
+    // --- [3] 기능 로직 ---
+
+    // 영구 삭제 전 확인 팝업
+    private fun showDeleteConfirmDialog(item: FolderItem.Child) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("영구 삭제")
+            .setMessage("'${item.name}'을(를) 정말로 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")
+            .setPositiveButton("삭제") { _, _ ->
+                deletePermanently(item)
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    // 복구 로직 (isDeleted -> false)
+    private fun restoreFolder(item: FolderItem.Child) {
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("user").document(uid).collection("folders").document(item.id)
+            .update("isDeleted", false)
+            .addOnSuccessListener {
+                Toast.makeText(context, "복구되었습니다.", Toast.LENGTH_SHORT).show()
+                fetchTrashItems() // 목록 갱신
+            }
+    }
+
+    // 영구 삭제 로직 (DB에서 제거)
+    private fun deletePermanently(item: FolderItem.Child) {
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("user").document(uid).collection("folders").document(item.id)
+            .delete()
+            .addOnSuccessListener {
+                Toast.makeText(context, "영구 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                fetchTrashItems() // 목록 갱신
+            }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    // --- [4] 내부 어댑터 (휴지통 전용) ---
+    inner class TrashAdapter(
+        private val items: List<FolderItem.Child>,
+        private val onClick: (FolderItem.Child) -> Unit
+    ) : RecyclerView.Adapter<TrashAdapter.ViewHolder>() {
+
+        inner class ViewHolder(val binding: ItemFolderChildBinding) : RecyclerView.ViewHolder(binding.root)
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val binding = ItemFolderChildBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            return ViewHolder(binding)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val item = items[position]
+
+            // 텍스트 설정
+            holder.binding.tvChildTitle.text = item.name
+
+            // 아이콘을 휴지통 모양으로 변경 (시각적 구분)
+            holder.binding.ivChildIcon.setImageResource(R.drawable.ic_delete)
+            holder.binding.ivChildIcon.setColorFilter(Color.parseColor("#EF4444")) // 빨간색 틴트
+
+            // 클릭 시 바텀 시트 호출
+            holder.binding.root.setOnClickListener { onClick(item) }
+
+            // 옵션 버튼(점3개)은 숨김 (항목 자체를 누르게 유도)
+            // 만약 점3개 버튼으로만 메뉴를 열고 싶다면 onClick을 여기에 연결하고 root 리스너를 제거하세요.
+            holder.binding.btnChildOptions.visibility = View.GONE
+        }
+
+        override fun getItemCount() = items.size
     }
 }

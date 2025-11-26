@@ -8,21 +8,28 @@
     android:background="@color/app_background"
     tools:context="com.minyook.overnight.ui.mainscrean.OvernightActivity">
 
+    <!--
+       [핵심 수정 1]
+       layout_constraintBottom_toBottomOf="parent"를 지우고
+       layout_constraintBottom_toTopOf="@id/nav_card_container"로 변경했습니다.
+       이제 화면이 내비게이션 카드 바로 위에서 끝나므로 절대 가려지지 않습니다.
+    -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/fragment_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/nav_card_container"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <!--
-        네비게이션 바를 CardView로 감싸서
-        '플로팅(Floating)' 효과와 부드러운 그림자를 줍니다.
-        하단 마진(margin)을 주어 화면 끝에서 살짝 띄웁니다.
+        [핵심 수정 2]
+        CardView에 android:id="@+id/nav_card_container"를 추가했습니다.
+        위의 FragmentContainerView가 이 ID를 참조하여 위치를 잡습니다.
     -->
     <androidx.cardview.widget.CardView
+        android:id="@+id/nav_card_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="24dp"
@@ -42,17 +49,17 @@
             android:layout_height="wrap_content"
             android:background="@android:color/transparent"
             app:elevation="0dp"
-            app:menu="@menu/bottom_nav_menu"
+            app:itemActiveIndicatorStyle="@style/App.Custom.Indicator"
 
             app:itemIconTint="@color/selector_bottom_nav"
+            app:itemPaddingBottom="16dp"
+
+            app:itemPaddingTop="16dp"
+            app:itemRippleColor="@color/nav_indicator"
             app:itemTextColor="@color/selector_bottom_nav"
 
             app:labelVisibilityMode="labeled"
-            app:itemPaddingBottom="16dp"
-            app:itemPaddingTop="16dp"
-
-            app:itemActiveIndicatorStyle="@style/App.Custom.Indicator"
-            app:itemRippleColor="@color/nav_indicator" />
+            app:menu="@menu/bottom_nav_menu" />
 
     </androidx.cardview.widget.CardView>
 

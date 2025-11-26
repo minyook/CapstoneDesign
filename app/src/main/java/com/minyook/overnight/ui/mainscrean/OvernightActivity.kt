@@ -1,10 +1,13 @@
 package com.minyook.overnight.ui.mainscrean
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.firebase.auth.FirebaseAuth
 import com.minyook.overnight.R
+import com.minyook.overnight.ui.FirstScrean.LoginFragment
 import com.minyook.overnight.ui.home.HomeFragment // HomeFragment import
 import com.minyook.overnight.ui.mypage.MyPageFragment // MyPageFragment import
 import com.minyook.overnight.ui.folder.FolderFragment // ⭐️ FolderFragment import (패키지 경로 가정)
@@ -24,6 +27,17 @@ class OvernightActivity : AppCompatActivity() {
         setContentView(R.layout.activity_overnight)
 
         val bottomNav: BottomNavigationView = findViewById(R.id.bottom_navigation)
+
+        // Firebase Auth 인스턴스 가져오기
+        val auth = FirebaseAuth.getInstance()
+
+        if (auth.currentUser == null) {
+            // ⭐ 로그아웃 상태라면 로그인 화면(LoginActivity/LoginFragment)으로 이동
+            val intent = Intent(this, LoginFragment::class.java)
+            startActivity(intent)
+            finish() // 현재 액티비티 종료
+            return
+        }
 
         // 2. 앱이 처음 켜졌을 때 '홈' 화면을 기본으로 보여줍니다.
         if (savedInstanceState == null) {
