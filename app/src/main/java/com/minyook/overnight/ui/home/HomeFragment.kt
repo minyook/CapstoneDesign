@@ -14,6 +14,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.minyook.overnight.databinding.FragmentHomeBinding
 import com.minyook.overnight.ui.mainscrean.PresentationInfoActivity
+import com.minyook.overnight.ui.mainscrean.ScriptChatActivity
 
 class HomeFragment : Fragment() {
 
@@ -109,7 +110,9 @@ class HomeFragment : Fragment() {
 
         // Script, Guide 카드 (필요 시 구현)
         binding.cardScript.setOnClickListener {
-            // TODO: 스크립트 화면 이동
+            //
+            val intent = Intent(requireContext(), ScriptChatActivity::class.java)
+            startActivity(intent)
         }
         binding.cardGuide.setOnClickListener {
             // TODO: 가이드 화면 이동
