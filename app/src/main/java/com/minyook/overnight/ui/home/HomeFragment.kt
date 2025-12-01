@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.minyook.overnight.databinding.FragmentHomeBinding
+import com.minyook.overnight.ui.mainscrean.GuideActivity
 import com.minyook.overnight.ui.mainscrean.PresentationInfoActivity
 import com.minyook.overnight.ui.mainscrean.ScriptChatActivity
 
@@ -116,6 +117,8 @@ class HomeFragment : Fragment() {
         }
         binding.cardGuide.setOnClickListener {
             // TODO: 가이드 화면 이동
+            val intent = Intent(requireContext(), GuideActivity::class.java)
+            startActivity(intent)
         }
     }
 
