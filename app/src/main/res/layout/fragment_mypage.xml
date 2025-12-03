@@ -7,7 +7,6 @@
     android:layout_height="match_parent"
     android:background="@color/app_background">
 
-    <!-- 1. 상단 프로필 헤더 (기존 유지) -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/profile_header"
         android:layout_width="match_parent"
@@ -63,7 +62,6 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- 2. 스크롤 가능한 메인 영역 -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -78,7 +76,6 @@
             android:orientation="vertical"
             android:paddingHorizontal="24dp">
 
-            <!-- 계정 활동 내역 (기존 유지) -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -116,7 +113,9 @@
                             android:text="총 발표 횟수"
                             android:textColor="@color/text_body"
                             android:textSize="16sp"/>
+
                         <TextView
+                            android:id="@+id/tv_presentation_count"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0회"
@@ -143,7 +142,9 @@
                             android:text="등록된 과목"
                             android:textColor="@color/text_body"
                             android:textSize="16sp"/>
+
                         <TextView
+                            android:id="@+id/tv_subject_count"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0개"
@@ -170,7 +171,9 @@
                             android:text="우수 발표(A등급)"
                             android:textColor="@color/text_body"
                             android:textSize="16sp"/>
+
                         <TextView
+                            android:id="@+id/tv_excellent_count"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0회"
@@ -181,7 +184,6 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- [수정] Subject History -> 전체 노트 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -207,7 +209,6 @@
                     android:textSize="14sp"/>
             </LinearLayout>
 
-            <!-- [수정] 전체 노트 보기 버튼 (클릭 시 이동) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_all_notes"
                 android:layout_width="match_parent"
@@ -243,7 +244,6 @@
                         android:orientation="vertical"
                         android:layout_marginStart="16dp">
 
-                        <!-- 텍스트 변경 -->
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -268,7 +268,6 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- [추가] 로그아웃 버튼 (하단) -->
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btn_logout"
                 android:layout_width="match_parent"

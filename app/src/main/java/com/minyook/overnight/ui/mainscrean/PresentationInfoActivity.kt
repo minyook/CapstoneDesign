@@ -7,9 +7,11 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.widget.NestedScrollView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -19,6 +21,7 @@ import com.minyook.overnight.ui.file.UploadActivity
 class PresentationInfoActivity : AppCompatActivity(),
     FolderSelectionBottomSheet.OnFolderSelectedListener {
 
+    private lateinit var scrollView: NestedScrollView
     private lateinit var itemsContainer: LinearLayout
     private lateinit var addItemButton: Button
     private lateinit var startButton: Button
@@ -42,6 +45,15 @@ class PresentationInfoActivity : AppCompatActivity(),
         // 내비게이션 바 숨김
         hideSystemUI()
 
+        // ★ [핵심] 키보드가 올라올 때 뷰가 가려지지 않도록 패딩을 주는 리스너
+        // 전체 화면 모드(hideSystemUI)를 쓸 때는 adjustResize가 잘 안 먹힐 수 있어서 이 코드가 필수적입니다.
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
+            val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+            val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            view.setPadding(0, 0, 0, if (imeVisible) imeHeight else 0)
+            insets
+        }
+
         // 1. Firebase 초기화
         db = FirebaseFirestore.getInstance()
         auth = FirebaseAuth.getInstance()
@@ -55,6 +67,7 @@ class PresentationInfoActivity : AppCompatActivity(),
         }
 
         // 2. 뷰 바인딩
+        scrollView = findViewById(R.id.scrollView)
         itemsContainer = findViewById(R.id.itemsContainer)
         addItemButton = findViewById(R.id.addItemButton)
         startButton = findViewById(R.id.startButton)
@@ -116,6 +129,12 @@ class PresentationInfoActivity : AppCompatActivity(),
             itemCounter--
         }
         itemsContainer.addView(itemCardView)
+
+        scrollView.post {
+            scrollView.fullScroll(NestedScrollView.FOCUS_DOWN)
+            // 추가된 항목의 입력창에 바로 포커스 주기 (사용자 편의)
+            itemNameEditText.requestFocus()
+        }
     }
 
     // 폴더 선택 완료 시 호출
